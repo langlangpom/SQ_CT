@@ -1,0 +1,412 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>login</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<link href="https://cdn.bootcss.com/bootstrap-fileinput/5.0.6/css/fileinput.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="https://cdn.bootcss.com/bootstrap-fileinput/5.0.6/js/fileinput.min.js"></script>
+<script src="https://cdn.bootcss.com/bootstrap-fileinput/5.0.6/js/locales/zh.js"></script>
+<script src="js/layer/layer.js"></script>
+<style type="text/css">
+*{
+	margin: 0;
+	padding: 0;
+}
+#wrap {
+	height: 719px;
+	width: 100;
+	background-image: url(10364V617-8.jpg);
+	background-repeat: no-repeat;
+	background-position: center center;
+	position: relative;
+}
+#head {
+	width: 100;
+	background-color: #ffffff;
+	text-align: center;
+	position: relative;
+}
+#head .title img{
+	height: 85px;
+}
+#foot {
+	width: 100;
+	height: 126px;
+	background-color: #cc5933cf;
+	position: relative;
+}
+#wrap .logGet {
+	height: 408px;
+	width: 368px;  
+	position: absolute;
+	background-color: #FFFFFF;
+	top: 20%;
+	right: 15%;
+}
+.logC a button {
+	width: 100%;
+	height: 45px;
+	background: linear-gradient(152deg, #f9d600 0%, #fdad00 100%);
+	border: none;
+	color: white;
+	font-size: 18px;
+}
+.logGet .logD.logDtip .p1 {
+	display: inline-block;
+	font-size: 28px;
+	margin-top: 30px;
+	width: 86%;
+	text-align: center;
+    width: 100%;
+}
+#wrap .logGet .logD.logDtip {
+	width: 86%;
+	border-bottom: 1px solid #ee7700;
+	margin-bottom: 60px;
+	margin-top: 0px;
+	margin-right: auto;
+	margin-left: auto;
+}
+.logGet .lgD img {
+	position: absolute;
+	top: 11px;
+	left: 8px;
+}
+.logGet .lgD input {
+	width: 100%;
+	height: 42px;
+	text-indent: 2.5rem;
+	padding-left: 10px;
+}
+#wrap .logGet .lgD {
+	width: 86%;
+	position: relative;
+	margin-bottom: 30px;
+	margin-top: 30px;
+	margin-right: auto;
+	margin-left: auto;
+}
+#wrap .logGet .logC {
+	width: 86%;
+	margin-top: 0px;
+	margin-right: auto;
+	margin-bottom: 0px;
+	margin-left: auto;
+}
+ 
+ 
+.title {
+	font-family: "宋体";
+	color: #FFFFFF;
+	font-size: 36px;
+}
+ 
+.copyright {
+	font-family: "宋体";
+	color: #FFFFFF;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);  /* 使用css3的transform来实现 */
+	height: 60px;
+	width: 40%;
+	text-align:center;
+}
+	
+ 
+#foot .copyright .img {
+	width: 100%;
+	height: 24px;
+	position: relative;
+}
+	
+#foot .copyright p {
+	height: 24px;
+	width: 100%;
+}
+.uploading{
+	display: none;
+}
+.fileUploading{
+	width: 800px;
+	margin: auto;
+}
+.uploading .uploadingText{
+	width: 300px;
+    margin: auto;
+    margin-top: 100px;
+}
+.uploading .uploadingText .input-group{
+	margin-bottom: 50px;
+}
+.subitmVersionsDiv{
+	text-align: center;
+}
+</style>
+</head>
+ 
+<body>
+	<div class="loginModule">
+		<div class="header" id="head">
+		  <div class="title"><img src="icon.png"></div>
+			
+		</div>
+			
+		<div class="wrap" id="wrap">
+			<div class="logGet">
+				<!-- 头部提示信息 -->
+				<div class="logD logDtip">
+					<p class="p1">登录</p>
+				</div>
+				<!-- 输入框 -->
+				<div class="lgD userName">
+					<img src="img/logName.png" width="20" height="20" alt=""/>
+					<input type="text"
+						placeholder="输入用户名" />
+				</div>
+				<div class="lgD password">
+					<img src="img/logPwd.png" width="20" height="20" alt=""/>
+					<input type="password"
+						placeholder="输入用户密码" />
+				</div>
+				<div class="logC">
+					<a target="_self"><button>登 录</button></a>
+				</div>
+			</div>
+		</div>
+			
+		<div class="footer" id="foot">
+		  <div class="copyright">
+		    <p>版权所有 2018 ©　深圳青云蓝海科技股份有限公司</p>
+			
+			<div class="img">
+				<span>联系地址：深圳青云蓝海科技股份有限公司</span>
+			</div>
+			  
+			<div class="img">
+			  <span>客户服务热线：0755-66833320</span>
+			</div>
+		 
+		 
+		  </div>
+			
+		</div>
+	
+	</div>
+	<div class="uploading">
+		<div class="fileUploading">
+			<input type="file" name="txt_file" id="txt_file" multiple class="file-loading" />
+		</div>
+
+		<div class="uploadingText">
+			<div class="input-group">
+			  <span class="input-group-addon" >versionName</span>
+			  <input type="text" class="form-control" id="versionName" placeholder="版本名" >
+			</div>
+			<div class="input-group">
+			  <span class="input-group-addon" >versionInt</span>
+			  <input type="text" class="form-control" id="versionInt" placeholder="版本号">
+			</div>
+		</div>
+		<div class="subitmVersionsDiv">
+			<button type="button" class="btn btn-default subitmVersions">提交版本信息</button>
+		</div>
+	</div>
+</body>
+<script type="text/javascript">
+$(function(){
+	var accountNumber = "";
+	var accountPwd = "";
+	if(isLogin){
+		var name = sessionStorage.getItem('accountNumber');
+		var pwd = sessionStorage.getItem('accountPwd');
+		if(name&&pwd){
+			login(name,pwd);
+		}
+	}
+	$('.logC').click(function(){
+		var userName = $('.userName input[type="text"]').val();
+		var password = $('.password input[type="password"]').val();
+		login(userName,password);
+	});
+
+	function login(userName,password){
+		$.ajax({
+            type: "post",
+            url: "uploading/login",
+            dataType: 'json',
+            data:{
+                userName:userName,
+                password:password
+            },
+            complete: function(json) {
+                var data = json.responseText;
+                var status = json.status;
+                if(status != 200){
+                    layer.msg('网络异常，状态为16.5' + status);
+                    return;
+                }
+                if ($.type(data) == 'string') {
+                  data = JSON.parse(data);
+                }
+                if(data.code != 1){
+                    sessionStorage.removeItem("accountNumber");
+                	sessionStorage.removeItem("accountPwd");
+                    layer.msg(data.message);
+                    return;
+                }else{
+                	accountNumber = userName;
+                	accountPwd = password;
+                	sessionStorage.setItem("accountNumber",accountNumber);
+                	sessionStorage.setItem("accountPwd",accountPwd);
+                	$('.uploading').show();
+                	$('.loginModule').hide();
+                	getUpgradeDescribe();
+                }
+            }
+        });
+	}
+
+	function getUpgradeDescribe(){
+		$.ajax({
+            type: "post",
+            url: "evian/sqct/upgrade/getUpgradeDescribe",
+            dataType: 'json',
+            complete: function(json) {
+                var data = json.responseText;
+                var status = json.status;
+                if(status != 200){
+                    layer.msg('网络异常，状态为16.5' + status);
+                    return;
+                }
+                if ($.type(data) == 'string') {
+                  data = JSON.parse(data);
+                }
+                if(data.code != 1){
+                    layer.msg(data.message);
+                    return;
+                }else{
+
+                	$('#versionName').val(data.data.versionName);
+                	$('#versionInt').val(data.data.versionInt);
+                }
+            }
+        });
+	}
+
+	function setVersions(versionInt,versionName){
+		$.ajax({
+            type: "post",
+            url: "uploading/setVersions",
+            dataType: 'json',
+            data:{
+            	versionInt:versionInt,
+            	versionName:versionName,
+            	userName:accountNumber,
+            	password:accountPwd
+            },
+            complete: function(json) {
+                var data = json.responseText;
+                var status = json.status;
+                if(status != 200){
+                    layer.msg('网络异常，状态为16.5' + status);
+                    return;
+                }
+                if ($.type(data) == 'string') {
+                  data = JSON.parse(data);
+                }
+                if(data.code != 1){
+                    layer.msg(data.message);
+                    return;
+                }else{
+                	layer.msg("更改成功，请等待30s后生效");
+                }
+            }
+        });
+	}
+
+	$('.subitmVersions').click(function(){
+		var versionName = $('#versionName').val();
+    	var versionInt = $('#versionInt').val();
+    	if($.trim(versionName)==''||$.trim(versionInt)==''){
+			layer.msg('请将版本信息补充完整');
+			return;
+    	}
+    	
+		//询问框
+		layer.confirm('确认提交版本吗？', {
+		  btn: ['确认','再想想'] //按钮
+		}, function(){
+		  // layer.msg('的确很重要', {icon: 1});
+		  setVersions(versionInt,versionName);
+		}, function(){
+		  /*layer.msg('也可以这样', {
+		    time: 20000, //20s后自动关闭
+		    btn: ['明白了', '知道了']
+		  });*/
+		});
+	});
+
+	function isLogin(){
+		var name = sessionStorage.getItem('accountNumber');
+		var pwd = sessionStorage.getItem('accountPwd');
+		if(name&&pwd)
+			return true;
+		return false;
+	}
+
+	initFileInput();
+	function initFileInput() {
+	    $("#txt_file").fileinput({
+	        language: 'zh', //设置语言
+	        dropZoneTitle: '可以将文件拖放到这里 …支持多文件上传',
+	        uploadUrl: "uploading/multiImport", //上传的地址
+	        uploadExtraData: function(previewId, index) {   //该插件可以向您的服务器方法发送附加数据。这可以通过uploadExtraData在键值对中设置为关联数组对象来完成。所以如果你有设置uploadExtraData={id:'kv-1'}，在PHP中你可以读取这些数据$_POST['id']
+	            return {
+	            	userName:accountNumber,
+                	password:accountPwd
+	            };
+	        },
+	        allowedFileExtensions: ['plist','apk','ipa'],//接收的文件后缀
+	        uploadAsync: true, //默认异步上传
+	        showUpload: true, //是否显示上传按钮
+	        showRemove: true, //显示移除按钮
+	        showPreview: true, //是否显示预览
+	        showCancel:true,   //是否显示文件上传取消按钮。默认为true。只有在AJAX上传过程中，才会启用和显示
+	        showCaption: true,//是否显示文件标题，默认为true
+	        browseClass: "btn btn-primary", //文件选择器/浏览按钮的CSS类。默认为btn btn-primary
+	        dropZoneEnabled: true,//是否显示拖拽区域
+	        minImageWidth: 50, //图片的最小宽度
+	        minImageHeight: 50,//图片的最小高度
+	        maxImageWidth: 1000,//图片的最大宽度
+	        maxImageHeight: 1000,//图片的最大高度
+	        maxFileSize: 51200,// 50*1024=51200 (kb)   单位为kb，如果为0表示不限制文件大小
+	        minFileCount: 1, //每次上传允许的最少文件数。如果设置为0，则表示文件数是可选的。默认为0
+	        maxFileCount: 3, //每次上传允许的最大文件数。如果设置为0，则表示允许的文件数是无限制的。默认为0
+	        previewFileIcon: "<i class='glyphicon glyphicon-king'></i>",//当检测到用于预览的不可读文件类型时，将在每个预览文件缩略图中显示的图标。默认为<i class="glyphicon glyphicon-file"></i>  
+	        layoutTemplates:{
+	            // actionUpload:'',//去除上传预览缩略图中的上传图片
+	            // actionZoom:'',   //去除上传预览缩略图中的查看详情预览的缩略图标
+	            // actionDownload:'', //去除上传预览缩略图中的下载图标
+	            // actionDelete:'', //去除上传预览的缩略图中的删除图标
+	        },//对象用于渲染布局的每个部分的模板配置。您可以设置以下模板来控制窗口小部件布局.eg:去除上传图标
+	        msgFilesTooMany: "选择上传的文件数量({n}) 超过允许的最大数值{m}！",//字符串，当文件数超过设置的最大计数时显示的消息 maxFileCount。默认为：选择上传的文件数（{n}）超出了允许的最大限制{m}。请重试您的上传！
+	    }).on('filebatchpreupload', function(event, data) { //该方法将在上传之前触发
+	        var id = $('#id option:selected').val();
+	        if(id == 0){
+	            return {
+	                message: "请选择", // 验证错误信息在上传前要显示。如果设置了这个设置，插件会在调用时自动中止上传，并将其显示为错误消息。您可以使用此属性来读取文件并执行自己的自定义验证
+	                data:{} // any other data to send that can be referred in `filecustomerror`
+	            };
+	        }
+	    });
+	}
+
+})
+</script>
+</html>
