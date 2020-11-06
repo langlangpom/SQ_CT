@@ -6,7 +6,9 @@ import java.util.Date;
  * @date   2019年6月24日 下午5:01:58
  * @author XHX
  * @Description 售货机职员权限表
+ * 2020-05-09 发现它弃用了  转e_appMerchant_account_enterprise_role 表  字段sign=deliveryStaff为配送员
  */
+@Deprecated
 public class EAppMerchantAccountRole {
 
 	private Integer roleId;				// 权限id

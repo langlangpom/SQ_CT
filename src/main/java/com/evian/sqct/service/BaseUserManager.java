@@ -1,9 +1,18 @@
 package com.evian.sqct.service;
 
+import com.alibaba.fastjson.JSON;
+import com.evian.sqct.bean.jwt.TokenDTO;
 import com.evian.sqct.bean.user.*;
+import com.evian.sqct.bean.util.JPushShangHuModel;
 import com.evian.sqct.bean.vendor.UrlManage;
 import com.evian.sqct.dao.IUserDao;
+import com.evian.sqct.dao.mybatis.primaryDataSource.dao.IUserMapperDao;
+import com.evian.sqct.exception.BaseRuntimeException;
+import com.evian.sqct.response.ResultCode;
 import com.evian.sqct.util.*;
+import com.evian.sqct.util.DESUser.UserDes;
+import io.jsonwebtoken.ExpiredJwtException;
+import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
@@ -11,14 +20,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
-@Service
-@Transactional(rollbackFor=Exception.class)
+@Service("baseUserManager")
 public class BaseUserManager extends BaseManager{
 	
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -26,6 +39,24 @@ public class BaseUserManager extends BaseManager{
 	@Autowired
 	@Qualifier("userDao")
 	private IUserDao userDao;
+
+	@Autowired
+	private ICacheService cacheService;
+
+	@Autowired
+	private BaseVendorManager baseVendorManager;
+
+	@Autowired
+	private IJsonWebTokenService jwtService;
+
+
+	@Autowired
+	private IUserMapperDao userMapperDao;
+
+	@Autowired
+	private IFileUploadService fileUploadService;
+
+
 
 	public Map<String,Object> userLogin(String loginName, String passWord,
 			String lastLoginIP) {
@@ -36,6 +67,19 @@ public class BaseUserManager extends BaseManager{
 	
 	public Map<String,Object> userLogin_v2(String loginName, String passWord) {
 		Map<String,Object> userLogin = userDao.userLogin_v2(loginName, passWord);
+		if (!"1".equals(userLogin.get("TAG"))) {
+			throw BaseRuntimeException.jointCodeAndMessage(ResultCode.CODE_FAIL_LOGIN);
+		}
+		Object resultObj = userLogin.get("result");
+		if(resultObj!=null){
+			UserModel3 result = (UserModel3) resultObj;
+			result.setOpenShuiqooBusApp(false);
+			Integer eid = result.getEid();
+			if(eid!=null){
+				boolean openShuiqooBusApp = userDao.selectOpenShuiqooBusApp(eid);
+				result.setOpenShuiqooBusApp(openShuiqooBusApp);
+			}
+		}
 		return userLogin;
 	}
 
@@ -44,20 +88,22 @@ public class BaseUserManager extends BaseManager{
 		return selectUserByNameAndPwd;
 	}
 
+	@Transactional(rollbackFor=Exception.class)
 	public boolean saveSMSFindPwd(String cellPhone, String ip) {
 		Map<String, Object> stringObjectMap = userDao.selectEAppMerchantAccount(cellPhone);
 		if (stringObjectMap != null) {
 			return userDao.saveSMSFindPwd(cellPhone, ip);
-
 		} else {
 			return false;
 		}
 	}
 
+	@Transactional(rollbackFor=Exception.class)
 	public boolean setSMSFindPwd(String cellPhone, String msgCode, String npwd) {
 		return userDao.setSMSFindPwd(cellPhone, msgCode, npwd);
 	}
-	
+
+	@Transactional(rollbackFor=Exception.class)
 	public boolean setSMSFindPwd_v2(String cellPhone, String msgCode, String npwd) {
 		return userDao.setSMSFindPwd_v2(cellPhone, msgCode, npwd);
 	}
@@ -65,7 +111,8 @@ public class BaseUserManager extends BaseManager{
 	public String getNowDbName(){
 		return userDao.getNowDbName();
 	}
-	
+
+	@Transactional(rollbackFor=Exception.class)
 	public Map<String, Object> clientLogin(String account,String passWord,String appver){
 		Map<String, Object> map = new HashMap<String, Object>();
 		Eclient eclient = userDao.findUniqueBy(account);
@@ -81,7 +128,7 @@ public class BaseUserManager extends BaseManager{
 
                     //更新登录时间、次数
                     eclient.setLoginNumber(eclient.getLoginNumber() + 1);
-                    eclient.setDateLastLogin(new Timestamp(new Date().getTime()));
+                    eclient.setDateLastLogin(new Timestamp(System.currentTimeMillis()));
                     eclient.setAppVer(appver);
                     if (StringUtils.isEmpty(eclient.getIdentityCode())) {
                         //生成客户唯一身份码
@@ -120,36 +167,38 @@ public class BaseUserManager extends BaseManager{
 	public Ecity getCityByCode(Integer baiduCode) {
 		return userDao.getCityByCode(baiduCode);
 	}
-	
+
+	@Transactional(rollbackFor=Exception.class)
 	public Map<String, Object> registerVerifyCode(String cellphone, String passWord, String code, String sdkType, String mobileIMEL, String mobileType, String sdkVer, String weixinId, String location, int cityId, String appId, int tokenId, int appType,String regSource) {
 		return userDao.registerVerifyCode(cellphone, passWord, code, sdkType, mobileIMEL, mobileType, sdkVer, weixinId, location, cityId, appId, tokenId, appType, regSource);
 	}
-	
+
+	@Transactional(rollbackFor=Exception.class)
 	public Map<String, String> regeditZongSongCode(String source, String account, int clientId, int cityId,int appType,int eid) {
 		return userDao.regeditZongSongCode(source, account, clientId, cityId, appType, eid);
 	}
 	@Transactional(rollbackFor=Exception.class)
 	public Integer updateHealthCertificate(Integer accountId,Integer eid,String headImg,String fullname,String healthCertificateImg,String SQ_IDCard) {
-		logger.info("[project:{}] [step:enter] [accountId:{}] [eid:{}] [headImg:{}] [fullname:{}] [healthCertificateImg:{}] [SQ_IDCard:{}]",
-				new Object[] { WebConfig.projectName, accountId, eid, headImg, fullname,healthCertificateImg,SQ_IDCard});
 		return userDao.updateHealthCertificate(accountId, eid, headImg, fullname, healthCertificateImg,SQ_IDCard);
 	}
 	@Transactional(rollbackFor=Exception.class)
-	public Integer updateAppMerchantJpush(Integer accountId,String regeditId,Integer sourceId) {
-		logger.info("[project:{}] [step:enter] [accountId:{}] [regeditId:{}] [sourceId:{}] ",
-				new Object[] { WebConfig.projectName, accountId, regeditId, sourceId});
+	public Integer updateAppMerchantJpush(Integer accountId,String regeditId,Integer sourceId,Integer platformId) {
+		/*List<Map<String, Object>> jpushs = userDao.selectAppMerchantJpush(regeditId);
+		for (Map<String, Object> account:jpushs) {
+			Integer id = (Integer) account.get("accountId");
+			if(accountId.intValue()!=id){
+				userDao.removeAppMerchantJpush(id,regeditId);
+			}
+		}*/
 		Map<String, Object> selectAppMerchantJpush = userDao.selectAppMerchantJpush(accountId);
 		if(selectAppMerchantJpush==null) {
-			return userDao.insertAppMerchantJpush(accountId, regeditId, sourceId);
+			return userDao.insertAppMerchantJpush(accountId, regeditId, sourceId,platformId);
 		}else {
-			return userDao.updateAppMerchantJpush(accountId, regeditId, sourceId);
+			return userDao.updateAppMerchantJpush(accountId, regeditId, sourceId,platformId);
 		}
-		
 	}
 	
 	public List<Map<String, Object>> clientAddressSelect(Integer clientId,Integer eid){
-		logger.info("[project:{}] [step:enter] [clientId:{}] [eid:{}] ",
-				new Object[] { WebConfig.projectName, clientId, eid});
 		List<Map<String, Object>> clientAddressSelect = userDao.clientAddressSelect(clientId, eid);
 		Iterator<Map<String, Object>> iterator = clientAddressSelect.iterator();
 		while (iterator.hasNext()){
@@ -167,30 +216,14 @@ public class BaseUserManager extends BaseManager{
 	}
 	
 	public List<StaffDTO> Proc_Backstage_staff_select(Integer eid,String shopName,Integer shopId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		logger.info("[project:{}] [step:enter] [eid:{}] [shopName:{}] [shopId:{}] [PageIndex:{}] [PageSize:{}] [IsSelectAll:{}]",
-				new Object[] { WebConfig.projectName, eid, shopName,shopId,PageIndex,PageSize,IsSelectAll});
-		
-		List<StaffDTO> proc_Backstage_staff_select = userDao.Proc_Backstage_staff_select(eid,shopName,shopId,null, PageIndex, PageSize, IsSelectAll);
+		List<StaffDTO> proc_Backstage_staff_select = userDao.Proc_Backstage_staff_select(eid,shopName,shopId,null,null, PageIndex, PageSize, IsSelectAll);
+		System.out.println(proc_Backstage_staff_select);
 		for (int i = proc_Backstage_staff_select.size()-1; i >= 0; i--) {
 			StaffDTO staffDTO = proc_Backstage_staff_select.get(i);
-			EAppMerchantAccountRole role = userDao.selectEAppMerchantAccountRoleByAccountId(staffDTO.getId());
-			
-			if(role!=null) {
-				String userAuthorization = role.getUserAuthorization();
-				// 判断是否送水员
-				if(!StringUtils.isEmpty(userAuthorization)&&userAuthorization.length()>=4) {
-					char charAt = userAuthorization.charAt(3);
-					if('1'!=charAt) {
-						proc_Backstage_staff_select.remove(i);
-					}
-				}else {
-					proc_Backstage_staff_select.remove(i);
-				}
-			}else {
+			EAppMerchantAccountEnterpriseRole role = userDao.selectEAppMerchantAccountEnterpriseRoleByAccountId(staffDTO.getId());
+			if(role==null||!"deliveryStaff".equals(role.getSign())) {
 				proc_Backstage_staff_select.remove(i);
 			}
-			
-			
 		}
 		return proc_Backstage_staff_select;
 	}
@@ -211,14 +244,11 @@ public class BaseUserManager extends BaseManager{
 	}
 	
 	public List<VendorShopAdministratorDTO> selectVendorShopAdmin(Integer eid,Integer shopId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		logger.info("[project:{}] [step:enter] [eid:{}] [shopId:{}] [PageIndex:{}] [PageSize:{}] [IsSelectAll:{}]",
-				new Object[] { WebConfig.projectName, eid, shopId,PageIndex,PageSize,IsSelectAll});
 		return userDao.selectVendorShopAdmin(eid,shopId, PageIndex, PageSize, IsSelectAll);
 	}
-	
+
+	@Transactional(rollbackFor=Exception.class)
 	public String Proc_Backstage_staff_add(Integer shopId,Integer eid,String name,String phone,String picture,String SQ_remark,String SQ_IDCard,String workCard,String healthCard,String creditCard,String SQ_staffNO,Boolean isRelevanceEvian){
-		logger.info("[project:{}] [step:enter] [shopId:{}] [eid:{}] [name:{}] [phone:{}] [picture:{}] [SQ_remark:{}] [SQ_IDCard:{}] [workCard:{}] [healthCard:{}] [creditCard:{}] [SQ_staffNO:{}] [isRelevanceEvian:{}]",
-				new Object[] { WebConfig.projectName, shopId, eid, name,phone,picture,SQ_remark,SQ_IDCard,workCard,healthCard,creditCard,SQ_staffNO,isRelevanceEvian});
 		return userDao.Proc_Backstage_staff_add(shopId, eid, name, phone, picture, SQ_remark, SQ_IDCard, workCard, healthCard, creditCard, SQ_staffNO, isRelevanceEvian);
 	}
 	
@@ -227,8 +257,6 @@ public class BaseUserManager extends BaseManager{
 	 * @return
 	 */
 	public Boolean selectWxIsRegister(Integer eid,String account) {
-		logger.info("[project:{}] [step:enter] [eid:{}] [account:{}]",
-				new Object[] { WebConfig.projectName, eid, account});
 		Integer num = userDao.selectWxIsRegister(eid, account);
 		if(num>0) {
 			return true;
@@ -467,8 +495,6 @@ public class BaseUserManager extends BaseManager{
 	 * @return
 	 */
 	public Map<String, Object> tuikeManagerCodes(String shopCode,Integer eid,Integer shopId,String beginTime,String endTime,String managerFullName,String tuikeFullName,String shopName,String eName,Boolean isEnable,String managerAccount,String tuikeAccount,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		logger.info("[project:{}] [step:enter] [shopCode:{}] [eid:{}] [shopId:{}] [beginTime:{}] [endTime:{}] [managerFullName:{}] [tuikeFullName:{}] [shopName:{}] [eName:{}] [isEnable:{}] [managerAccount:{}] [tuikeAccount:{}] [PageIndex:{}] [PageSize:{}] [IsSelectAll:{}]",
-				new Object[] { WebConfig.projectName, shopCode, eid, shopId,beginTime,endTime,managerFullName,tuikeFullName,shopName,eName,isEnable,managerAccount,tuikeAccount,PageIndex,PageSize,IsSelectAll});
 		return userDao.Proc_Backstage_shop_wechatliteapp_code_select(shopCode, eid, shopId, beginTime, endTime, managerFullName, tuikeFullName, shopName, eName, isEnable, managerAccount, tuikeAccount, PageIndex, PageSize, IsSelectAll);
 	}
 	
@@ -478,9 +504,8 @@ public class BaseUserManager extends BaseManager{
 	 * @param managerClientId
 	 * @return
 	 */
+	@Transactional(rollbackFor=Exception.class)
 	public String tuikeManagerAssignTuike(String shopCode,Integer managerClientId) {
-		logger.info("[project:{}] [step:enter] [shopCode:{}] [managerClientId:{}]",
-				new Object[] { WebConfig.projectName, shopCode, managerClientId});
 		return userDao.Proc_Backstage_shop_wechatliteapp_code_ManagerSetting(shopCode, managerClientId);
 	}
 	
@@ -575,10 +600,8 @@ public class BaseUserManager extends BaseManager{
 	 * @return
 	 */
 	public List<StaffDTO> Proc_Backstage_staff_select(Integer eid,String phone){
-		logger.info("[project:{}] [step:enter] [eid:{}] [phone:{}]",
-				new Object[] { WebConfig.projectName, eid, phone});
-		
-		List<StaffDTO> proc_Backstage_staff_select = userDao.Proc_Backstage_staff_select(eid,null,null,phone,null, null, null);
+
+		List<StaffDTO> proc_Backstage_staff_select = userDao.Proc_Backstage_staff_select(eid,null,null,phone,null,null, null, null);
 		return proc_Backstage_staff_select;
 	}
 	
@@ -612,8 +635,6 @@ public class BaseUserManager extends BaseManager{
 	 * @return
 	 */
 	public List<Map<String,Object>> Proc_Backstage_appMerchant_account_enterprise_role_menu_select(Integer roleId){
-		logger.info("[project:{}] [step:enter] [roleId:{}]",
-				new Object[] { WebConfig.projectName, roleId});
 		return userDao.Proc_Backstage_appMerchant_account_enterprise_role_menu_select(roleId);
 	}
 
@@ -623,14 +644,10 @@ public class BaseUserManager extends BaseManager{
 	 * @return
 	 */
 	public List<Map<String,Object>> Proc_Backstage_appMerchant_account_enterprise_menu_select_forAppLogin(Integer eid){
-		logger.info("[project:{}] [step:enter] [eid:{}]",
-				new Object[] { WebConfig.projectName, eid});
 		return userDao.Proc_Backstage_appMerchant_account_enterprise_menu_select_forAppLogin(eid);
 	}
 
 	public List<Map<String, Object>> selectEServiceUserlistByEid(Integer eid) {
-		logger.info("[project:{}] [step:enter] [eid:{}]",
-				new Object[] { WebConfig.projectName, eid});
 		return userDao.selectEServiceUserlistByEid(eid);
 	}
 
@@ -642,4 +659,212 @@ public class BaseUserManager extends BaseManager{
 		}
 		return edto;
 	}
+
+	@Transactional(rollbackFor=Exception.class)
+	public Integer removeAppMerchantJpush(Integer accountId,String regeditId) {
+		return userDao.removeAppMerchantJpush(accountId,regeditId);
+	}
+
+	@Transactional(rollbackFor=Exception.class)
+	public void updateNotSubscribeUserHeadimgurl(){
+		BatchWriteInDataByLog.init("C:\\Users\\XHX\\Desktop\\日志", "log", "未关注用户", true);
+		List<String> resultList = BatchWriteInDataByLog.executeInquire();
+		int e_weixin_subscribe_count = 0;
+		int e_weixin_subscribe_succeed_count = 0;
+		int e_client_wx_photo_count = 0;
+		int e_client_wx_photo_succeed_count = 0;
+		int e_groupbuy_order_count = 0;
+		int e_groupbuy_order_succeed_count = 0;
+		for (int i = 0; i < resultList.size(); i++) {
+			JSONObject json = JSONObject.fromObject(resultList.get(i));
+			String openId = json.getString("openid");
+			String headimgurl = json.getString("headimgurl");
+			Integer integer = userDao.updateNotSubscribeUserHeadimgurl_e_weixin_subscribe(openId, headimgurl);
+			e_weixin_subscribe_count++;
+			if(integer>0){
+				e_weixin_subscribe_succeed_count+=integer;
+			}
+			Integer integer1 = userDao.updateNotSubscribeUserHeadimgurl_e_client_wx_photo(openId, headimgurl);
+			e_client_wx_photo_count++;
+			if(integer1>0){
+				e_client_wx_photo_succeed_count+=integer1;
+			}
+			Integer integer2 = userDao.updateNotSubscribeUserHeadimgurl_e_groupbuy_order(openId, headimgurl);
+			e_groupbuy_order_count++;
+			if(integer2>0){
+				e_groupbuy_order_succeed_count+=integer2;
+			}
+		}
+		logger.info("该文件夹执行e_weixin_subscribe表{}条语句，{}次成功,e_client_wx_photo{}条语句，{}次成功,e_groupbuy_order{}条语句，{}次成功"
+				, new Object[]{e_weixin_subscribe_count,e_weixin_subscribe_succeed_count
+						,e_client_wx_photo_count,e_client_wx_photo_succeed_count,
+						e_groupbuy_order_count,e_groupbuy_order_succeed_count});
+	}
+
+	/** 138.水趣推客 获取申请信息  Json */
+	public String unBoundLogOutShareTuiKe(Integer eid,Integer type,String account,String clientId,String authorizer_appid) {
+		List<BasicNameValuePair> params=new ArrayList<BasicNameValuePair>();
+		params.add(new BasicNameValuePair("eid", eid.toString()));
+		params.add(new BasicNameValuePair("type", type.toString()));
+		params.add(new BasicNameValuePair("clientId", clientId));
+		params.add(new BasicNameValuePair("account", account));
+		params.add(new BasicNameValuePair("authorizer_appid", authorizer_appid));
+		String webContent = HttpClientUtilOkHttp.postEvianApi(UrlManage.getShuiqooApiUrl()+ "/peopleShare/unBoundLogOutShareTuiKe.action", params);
+		webContent = stringCodeExchangeIntCode(webContent);
+		return webContent;
+	}
+
+	/** 174.微信钱包实名认证  Json */
+	public String saveEarningWXAutonym(String identityCode,String openId,String autonym,String dealPass,String appId) {
+		List<BasicNameValuePair> params=new ArrayList<BasicNameValuePair>();
+		params.add(new BasicNameValuePair("clientId", identityCode));
+		params.add(new BasicNameValuePair("openId", openId));
+		params.add(new BasicNameValuePair("autonym", autonym));
+		params.add(new BasicNameValuePair("isAutonym", "true"));
+		params.add(new BasicNameValuePair("dealPass", dealPass));
+		params.add(new BasicNameValuePair("authorizer_appid", appId));
+		String webContent = HttpClientUtilOkHttp.postEvianApi(UrlManage.getShuiqooApiUrl()+ "/peopleShare/saveEarningWXAutonym.action", params);
+		webContent = stringCodeExchangeIntCode(webContent);
+		return webContent;
+	}
+	/** 175.用户提现到微信钱包  Json */
+	public String txToWxWallet(String identityCode,String openId,Double money,String dealPass,String appId) {
+		List<BasicNameValuePair> params=new ArrayList<BasicNameValuePair>();
+		params.add(new BasicNameValuePair("clientId", identityCode));
+		params.add(new BasicNameValuePair("openId", openId));
+		params.add(new BasicNameValuePair("money", money.toString()));
+		params.add(new BasicNameValuePair("dealPass", dealPass));
+		params.add(new BasicNameValuePair("authorizer_appid", appId));
+		String webContent = HttpClientUtilOkHttp.postEvianApi(UrlManage.getShuiqooApiUrl()+ "/peopleShare/txToWxWallet.action", params);
+		webContent = stringCodeExchangeIntCode(webContent);
+		return webContent;
+	}
+	/** 104.人人开店_我的账户情况  Json */
+	public String myEarningInfo(String identityCode,String appId) {
+		List<BasicNameValuePair> params=new ArrayList<BasicNameValuePair>();
+		params.add(new BasicNameValuePair("clientId", identityCode));
+		params.add(new BasicNameValuePair("authorizer_appid", appId));
+		String webContent = HttpClientUtilOkHttp.postEvianApi(UrlManage.getShuiqooApiUrl()+ "/peopleShare/myEarningInfo.action", params);
+		webContent = stringCodeExchangeIntCode(webContent);
+		return webContent;
+	}
+
+	@Transactional(rollbackFor=Exception.class)
+	public Integer saveAppFeedback(AppFeedbackDTO dto, MultipartFile[] feedbackImg) throws IOException {
+		StringBuilder pictures = new StringBuilder();
+		for (int i = 0; i <feedbackImg.length ; i++) {
+			String s = fileUploadService.fileUpload(feedbackImg[i].getBytes());
+			pictures.append(s);
+			if(i!=feedbackImg.length-1){
+				pictures.append(",");
+			}
+		}
+		dto.setPictures(pictures.toString());
+		return userDao.saveAppFeedback(dto);
+	}
+
+	/**
+	 * 查询客户反馈
+	 * @param accountId
+	 * @param eid
+	 * @return
+	 */
+	public List<AppFeedbackDTO> selectAppFeedback(Integer accountId,Integer eid){
+		return userDao.selectAppFeedback(accountId, eid);
+	}
+
+	@Async
+	public Integer accountChange(Integer accountId, Integer sourceId,TokenDTO token,Integer platformId){
+		Integer result = updateAppMerchantJpush(accountId, token.getRegeditId(), sourceId,platformId);
+		// 插入并输出挤下线的机器
+		List<TokenDTO> tokenDTOs = cacheService.saveLoginAccountToken(accountId, token);
+		System.out.println("ttttttttttt = "+tokenDTOs);
+		if(tokenDTOs.size()>0){
+			for (TokenDTO tokenDTO:tokenDTOs){
+				// 通知挤下线的机器
+//				baseVendorManager.sendJpushMessage(0, 20001, "下线通知，您的账号已在其他设备登录", "如不是您亲自操作，请及时修改密码。", 0, tokenDTO.getRegeditId(), "");
+				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				String dateString = formatter.format(new Date());
+				JPushShangHuModel model = new JPushShangHuModel(0,"下线通知，您的账号已在其他设备登录","如不是您亲自操作，请及时修改密码。",20001,dateString,sourceId,tokenDTO.getRegeditId(),"","",platformId);
+				JpushShangHuService.pushMsg(model);
+			}
+		}
+		return result;
+	}
+
+	@Async
+	public void logout(Integer accountId,String regeditId){
+		cacheService.logoutAccountToken(accountId,regeditId);
+	}
+
+	public TokenDTO refreshToken(String refresh_token){
+
+		try {
+			Integer accountId = jwtService.getTokenAccountId(refresh_token);
+			com.alibaba.fastjson.JSONObject payload = new com.alibaba.fastjson.JSONObject();
+			payload.put("accountId",accountId);
+			TokenDTO token = jwtService.createToken(payload);
+			List<TokenDTO> accountTokens = cacheService.getLoginAccountTokens(accountId);
+			if(accountTokens.size()==0){
+				throw BaseRuntimeException.jointCodeAndMessage(ResultCode.CODE_ERROR_REFRESH_TOKEN);
+			}
+			for (TokenDTO dto: accountTokens){
+				if(refresh_token.equals(dto.getRefresh_token())){
+					dto.setAccess_token(token.getAccess_token());
+					dto.setRefresh_token(token.getRefresh_token());
+					token.setRegeditId(dto.getRegeditId());
+					cacheService.setLoginAccountTokens(accountId,accountTokens);
+					return token;
+				}
+			}
+			logger.error("[refresh_token校验失败:{} accountTokens{}]",refresh_token,accountTokens);
+			throw BaseRuntimeException.jointCodeAndMessage(ResultCode.CODE_ERROR_REFRESH_TOKEN);
+		} catch (ExpiredJwtException e) {
+			logger.error("[refresh_token校验失败:{}]",e.getMessage());
+			throw BaseRuntimeException.jointCodeAndMessage(ResultCode.CODE_ERROR_REFRESH_TOKEN);
+		}
+
+	}
+
+
+	/**
+	 * 查询店铺补货员
+	 * @return
+	 */
+	public List<StaffDTO> selectVendorReplenishmentPart(VendorReplenishmentPartSelectDTO dto){
+		List<StaffDTO> result = userDao.Proc_Backstage_staff_select(dto.getEid(), null, dto.getShopId(), null, true, dto.getPageIndex(), dto.getPageSize(), dto.getIsSelectAll());
+
+		// 去重
+		List<StaffDTO> collect = result.stream()
+				.filter(StreamUtil.distinctByKey(s -> s.getId()))
+				.collect(Collectors.toList());
+		return collect;
+	}
+
+	public List<SelectEAppMerchantAccountAndRegeditIdByShopIdRseDTO> selectEAppMerchantAccountAndRegeditIdByShopId(Integer shopId){
+		return userDao.selectEAppMerchantAccountAndRegeditIdByShopId(shopId);
+	}
+
+	/**
+	 * 更新账号密码
+	 * @param clientId
+	 * @param account
+	 * @return
+	 */
+	public int updateEclientDes(Integer clientId,String account){
+		// 生成pwd和identityCode
+		UserDes userDes = new UserDes(clientId, account);
+
+		return userDao.updateEclient(clientId, userDes.getPassWord(), userDes.getIdentityCode());
+	}
+
+	/**
+	 * 查看账号
+	 * @param account
+	 * @return
+	 */
+	public Map<String, Object> lookAccount(String account){
+		return userMapperDao.selectNicknameByAccount(account);
+	}
+
 }

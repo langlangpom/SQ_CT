@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.evian.sqct.dao.mybatis.primaryDataSource.dao.IUserMapperDao">
+
+
+    <select id="selectNicknameByAccount" resultType="map">
+        select a.nickname,b.clientId from e_client_wx_photo a inner join e_client b on a.clientId=b.clientId where b.account=#{account}
+    </select>
+
+
+</mapper>

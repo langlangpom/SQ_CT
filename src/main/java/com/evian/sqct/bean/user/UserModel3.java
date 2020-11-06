@@ -25,6 +25,9 @@ public class UserModel3 {
 	private Integer roleId;				// 权限id
 	private String roleName;			// 权限昵称
 	private String sign;				// 返回sign=superAdmin或者shopAdmin时，无需判断权限
+	private Boolean openShuiqooBusApp; 	// 是否开通水趣商户
+	private String nickname;			// 微信昵称
+	private Boolean isReceiveOrder;		// 是否接单员
 
 	public String getRoleName() {
 		return roleName;
@@ -164,6 +167,25 @@ public class UserModel3 {
 	public void setPictureUrl(String pictureUrl) {
 		this.pictureUrl = pictureUrl;
 	}
+	public Boolean getOpenShuiqooBusApp() {
+		return openShuiqooBusApp;
+	}
+	public void setOpenShuiqooBusApp(Boolean openShuiqooBusApp) {
+		this.openShuiqooBusApp = openShuiqooBusApp;
+	}
+	public String getNickname() {
+		return nickname;
+	}
+	public void setNickname(String nickname) {
+		this.nickname = nickname;
+	}
+	public Boolean getIsReceiveOrder() {
+		return isReceiveOrder;
+	}
+	public void setIsReceiveOrder(Boolean isReceiveOrder) {
+		this.isReceiveOrder = isReceiveOrder;
+	}
+
 	@Override
 	public String toString() {
 		return "UserModel3 [accountId=" + accountId + ", account=" + account + ", userAuthorization="
@@ -172,7 +194,7 @@ public class UserModel3 {
 				+ ", healthCertificateImg=" + healthCertificateImg + ", isAdmin=" + isAdmin + ", track_userId="
 				+ track_userId + ", shopId=" + shopId + ", shopName=" + shopName + ", pictureUrl=" + pictureUrl
 				+ ", clientId=" + clientId + ", identityCode=" + identityCode + ", appId=" + appId + ", openId="
-				+ openId + "]";
+				+ openId + ", openShuiqooBusApp=" + openShuiqooBusApp + ", nickname=" + nickname + ", isReceiveOrder=" + isReceiveOrder + "]";
 	}
 	
 	

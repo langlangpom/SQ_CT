@@ -125,7 +125,27 @@ public class Constants {
 	public static final int CODE_VENDOE_SHOP_OR_TYPE_DIFFERENT = 151;
 	/** 用户不存在*/
 	public static final int CODE_ERROR_NOUSER = 152;
-	
+	/** 提现类型错误*/
+	public static final int CODE_ERROR_WITHDRAW_DEOISUT  = 153;
+	/** 企业支付信息错误 */
+	public static final int CODE_ERROR_ENTERPRISE_PAY  = 154;
+	/** 操作失败*/
+	public static final int CODE_ERROR_OPERATION = 155;
+	/** 订单状态已变更*/
+	public static final int CODE_ERROR_ORDER_ALTERATION = 156;
+	/** 账号生成失败*/
+	public static final int CODE_ERROR_ACCOUNT_SAVE = 157;
+	/** access_token验证错误 */
+	public static final int CODE_ERROR_ACCESS_TOKEN = 158;
+	/** refresh_token验证错误 */
+	public static final int CODE_ERROR_REFRESH_TOKEN = 159;
+	/** 未查询到相关单据信息 */
+	public static final int CODE_ERROR_NOT_ORDER = 160;
+	/** 存储过程数据不正确 */
+	public static final int CODE_ERROR_STORAGE_DATA_INCORRECT = 161;
+	/** 没有该存储过程 */
+	public static final int CODE_ERROR_NOT_STORAGE_DATA = 162;
+
 	
 	
 	static {
@@ -181,6 +201,16 @@ public class Constants {
 		map.put(CODE_ERROR_UPDATE, "修改失败");
 		map.put(CODE_VENDOE_SHOP_OR_TYPE_DIFFERENT, "货柜店铺或类型不相同");
 		map.put(CODE_ERROR_NOUSER, "用户不存在");
+		map.put(CODE_ERROR_WITHDRAW_DEOISUT, "提现类型错误");
+		map.put(CODE_ERROR_ENTERPRISE_PAY, "企业支付信息错误");
+		map.put(CODE_ERROR_OPERATION, "操作失败");
+		map.put(CODE_ERROR_ORDER_ALTERATION, "订单状态已变更");
+		map.put(CODE_ERROR_ACCOUNT_SAVE, "账号生成失败");
+		map.put(CODE_ERROR_ACCESS_TOKEN, "access_token验证错误");
+		map.put(CODE_ERROR_REFRESH_TOKEN, "refresh_token验证错误");
+		map.put(CODE_ERROR_NOT_ORDER, "未查询到相关单据信息");
+		map.put(CODE_ERROR_STORAGE_DATA_INCORRECT, "存储过程数据不正确");
+		map.put(CODE_ERROR_NOT_STORAGE_DATA, "没有该存储过程");
 	}
 
 	/**
@@ -189,8 +219,9 @@ public class Constants {
 	 * @return
 	 */
 	public static String getCodeValue(int code) {
-		if (map.containsKey(code))
+		if (map.containsKey(code)) {
 			return map.get(code);
+		}
 		return map.get(CODE_ERROR_SYSTEM);
 	}
 }

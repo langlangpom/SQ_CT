@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.evian.sqct.dao.mybatis.vendorDataSource.dao.ISkipShuiqooProductDao">
+
+    <resultMap id="BaseResultMap" type="com.evian.sqct.bean.vendor.SkipShuiqooProduct">
+        <result column="id" jdbcType="INTEGER" property="id" />
+        <result column="pid" jdbcType="INTEGER" property="pid" />
+        <result column="sort" jdbcType="INTEGER" property="sort" />
+        <result column="createTime" jdbcType="VARCHAR" property="createTime" />
+        <result column="creater" jdbcType="VARCHAR" property="creater" />
+    </resultMap>
+
+    <select id="select" resultType="com.evian.sqct.bean.vendor.SkipShuiqooProduct">
+        select id, pid, creater,eid from skip_shuiqoo_product where id = #{id}
+    </select>
+
+    <select id="selectSkipShuiqooProductByEid" parameterType="int" resultType="com.evian.sqct.bean.vendor.SkipShuiqooProduct">
+        select id, pid, creater,eid from skip_shuiqoo_product where id = #{id}
+    </select>
+
+    <insert id="insertSkipShuiqooProduct" parameterType="com.evian.sqct.bean.vendor.SkipShuiqooProduct" useGeneratedKeys="true">
+        insert into skip_shuiqoo_product(pid,sort,creater,eid) values(#{pid},#{sort},#{creater},#{eid})
+    </insert>
+
+</mapper>

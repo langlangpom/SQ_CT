@@ -1,16 +1,14 @@
 package com.evian.sqct.util;
 
-import java.sql.Timestamp;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
+import com.evian.sqct.bean.sys.AccessTokenAndJsTicket;
+import com.evian.sqct.bean.vendor.UrlManage;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.evian.sqct.bean.sys.AccessTokenAndJsTicket;
-import com.evian.sqct.bean.vendor.UrlManage;
+import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @date   2018年8月2日 下午4:13:20
@@ -30,7 +28,7 @@ public class WxTokenAndJsticketCache {
 		}
 		
 //		long now = StrUtils.getWebsiteDateLong();
-		long now = new Date().getTime();
+		long now = System.currentTimeMillis();
 		
 		Long newDateLong = now; // 当前时间
 		AccessTokenAndJsTicket entity = null;
@@ -76,7 +74,7 @@ public class WxTokenAndJsticketCache {
 		entity = accessTokenAndJsTicketMap.get(appId);
 		
 //		long now = StrUtils.getWebsiteDateLong();// 当前时间
-		long now = new Date().getTime();
+		long now = System.currentTimeMillis();
 		
 		Long newDateLong = now; // 当前时间
 		

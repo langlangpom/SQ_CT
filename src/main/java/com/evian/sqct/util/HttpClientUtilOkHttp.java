@@ -1,20 +1,6 @@
 package com.evian.sqct.util;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.net.ConnectException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.HttpsURLConnection;
-
+import com.squareup.okhttp.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -30,11 +16,14 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.squareup.okhttp.Call;
-import com.squareup.okhttp.FormEncodingBuilder;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
+import javax.net.ssl.HttpsURLConnection;
+import java.io.*;
+import java.net.ConnectException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 
@@ -59,9 +48,9 @@ public class HttpClientUtilOkHttp {
 	 */
 	public static String postEvianApi(String url, List<BasicNameValuePair> params) {
 
-		if(params==null)
-			params=new ArrayList<BasicNameValuePair>();
-		
+		if(params==null) {
+			params = new ArrayList<BasicNameValuePair>();
+		}
 		params.add(new BasicNameValuePair("timestamp", String.valueOf(System.currentTimeMillis())));
 		params.add(new BasicNameValuePair("equipment", "wx"));
 		params.add(new BasicNameValuePair("version_name", "2017.03.22.001"));
@@ -70,16 +59,13 @@ public class HttpClientUtilOkHttp {
 		String basicNameValuePairToString = basicNameValuePairToString(params);
 		basicNameValuePairToString = basicNameValuePairToString.replace("&version_name=2017.03.22.001", "").replace("&equipment=wx", "").replace("&appSource=ctapp", "");
 		logger.info("访问水趣接口：[url:{}]", new Object[] {url+"?"+basicNameValuePairToString});
-		
-		
 		FormEncodingBuilder builder = new FormEncodingBuilder();
-		
 		for (BasicNameValuePair param:params) {
 			builder.add(param.getName(), StringUtils.isEmpty(param.getValue()) ? "" : param.getValue());
 		}
 		
 		OkHttpClient client=new OkHttpClient();
-		client.setConnectTimeout(5, TimeUnit.SECONDS);
+		client.setConnectTimeout(15, TimeUnit.SECONDS);
 		client.setReadTimeout(15, TimeUnit.SECONDS);
 		client.setWriteTimeout(15, TimeUnit.SECONDS);
 		Request request = new Request.Builder()
@@ -92,9 +78,9 @@ public class HttpClientUtilOkHttp {
 	    Response response;
 		try {
 			response = call.execute();
-			 if(response.isSuccessful() && response.code()==200)
-			    	return response.body().string();
-			    else {
+			 if(response.isSuccessful() && response.code()==200) {
+				 return response.body().string();
+			 }else {
 					return "{\"code\":\"E11111\",\"message\":\"访问接口错误或者超时"+response.code()+"\"}";
 				}
 		} catch (IOException e) {

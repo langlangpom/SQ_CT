@@ -1,14 +1,17 @@
 package com.evian.sqct.dao;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
 import com.evian.sqct.bean.shop.City;
-import com.evian.sqct.bean.shop.FindShopModel;
 import com.evian.sqct.bean.shop.Shop;
 import com.evian.sqct.bean.shop.ShopCode;
 import com.evian.sqct.bean.shop.ShopTimeframe;
+import com.evian.sqct.bean.shop.inputDTO.ProcBackstageAppMerchantTodayStatisticsDTO;
+import com.evian.sqct.bean.shop.inputDTO.ProcBackstageShopLeagueClientsSelectDTO;
+import com.evian.sqct.bean.shop.inputDTO.ProcBackstageShopSelectDTO;
+import com.evian.sqct.bean.shop.inputDTO.ProcDisParkGetTicketAccountDTO;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 public interface IShopDao {
 
@@ -49,7 +52,7 @@ public interface IShopDao {
 	 * @param userId
 	 * @return
 	 */
-	public List<FindShopModel> selectShopByEidAndShopId(Integer shopId,Integer eid);
+	public Map<String,Object> selectShopByEidAndShopId(ProcBackstageShopSelectDTO dto);
 	
 	/**
 	 * 更改店铺
@@ -204,7 +207,7 @@ public interface IShopDao {
 	 * @param shopId 店铺ID
 	 * @return
 	 */
-	Map<String, Object> appMerchantTodayStatistics(Integer accountId,Integer shopId,String beginTime,String endTime);
+	Map<String, Object> appMerchantTodayStatistics(ProcBackstageAppMerchantTodayStatisticsDTO dto);
 	
 	/**
 	 * 操作店铺上下线
@@ -220,7 +223,7 @@ public interface IShopDao {
 	 * @param shopId 店铺ID
 	 * @return
 	 */
-	Map<String, Object> shopLeagueClientsSelect(String beginTime,String endTime,Integer shopId,Integer eid,String nickName,String cellphone,Integer noOrderDays,Boolean ifTuiYa,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+	Map<String, Object> shopLeagueClientsSelect(ProcBackstageShopLeagueClientsSelectDTO dto);
 	
 	/**
 	 * 电子票有效剩余量
@@ -228,7 +231,7 @@ public interface IShopDao {
 	 * @param type
 	 * @return
 	 */
-	List<Map<String,Object>> getTicketAccount(Integer clientId,Integer type);
+	Map<String,Object> getTicketAccount(ProcDisParkGetTicketAccountDTO dto);
 	
 	/**
 	 * 电子票消费列表
@@ -269,6 +272,52 @@ public interface IShopDao {
 	Integer updateShop(Integer shopId,String pictureUrl,String tel,String shopName,String startTime,String	endTime,String address,String location);
 	
 	List<Map<String, Object>> selectEidProduct(Integer eid,String pcode,String pname,String property,String shopName,Boolean enabled,Integer shopId,Integer pid,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+
+	String Proc_Backstage_product_stock_num_init(Integer eid,Integer pid,Integer shopId,Integer initStockNum,Integer saleStockNum,String createUser);
+
+	String Proc_Backstage_product_stock_num_reInit(Integer eid,Integer tsId);
+
+	Map<String,Object> PROC_ZH_DisCosts_SELECT_ShopAccount(Integer shopId,Integer eid);
+
+	/**
+	 * 申请提现保存
+	 * @param eid
+	 * @param clientId
+	 * @param shopId
+	 * @param account 水趣商户帐号
+	 * @param cashOut 提现金额
+	 * @param cashOutNo 提现单号
+	 * @param remark 提现说明
+	 * @return
+	 */
+	Map<String,Object> PROC_ZH_DistributionCosts_CashOut_SAVE(Integer eid, Integer clientId, Integer shopId, String account, Double cashOut, String cashOutNo, String remark,String APPUserName);
+
+	/**
+	 *
+	 * @param CashOutID 提现单ID
+	 * @param CashOutNO 提现单号
+	 * @param ifPayment 是否付款成功：1=已付款；0=未付款
+	 * @param iStatus 状态：0=正在提现；1=提现完成；-1=支付失败；-2=拒绝（传1或-1）；
+	 * @param paymentNo 支付对帐单号
+	 * @param SH_remark 出错日志
+	 * @return RETURN_message
+	 */
+	String PROC_ZH_DistributionCosts_CashOut_SAVE_Pay(Integer CashOutID,String CashOutNO,Boolean ifPayment,Integer iStatus,String paymentNo,String SH_remark);
+
+	/**
+	 *
+	 * @param eid
+	 * @param shopId
+	 * @param begDate
+	 * @param endDate
+	 * @param RE_TAG
+	 * @return
+	 */
+	List<Map<String,Object>> PROC_ZH_DistributionCosts_order_SELECT(Integer eid,Integer shopId,String begDate,String endDate,String RE_TAG, Integer PageIndex, Integer PageSize);
+
+	List<Map<String,Object>> PROC_ZH_DistributionCosts_CashOut_SELECT(Integer eid,Integer shopId,String begDate,String endDate,String RE_TAG, Integer PageIndex, Integer PageSize);
+
+
 }
 
 

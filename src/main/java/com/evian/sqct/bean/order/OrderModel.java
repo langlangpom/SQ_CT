@@ -49,7 +49,7 @@ public class OrderModel {
 	private String cancelReason;
 	private Boolean in_come;
 	private Timestamp comeDate;
-	private Boolean has_retrn;
+	private Boolean has_return;
 	private BigDecimal paymentMoney;
 	private Integer confirm_take;
 	private Integer sourceGroup;
@@ -58,6 +58,21 @@ public class OrderModel {
 	private String manager_remark;
 	private String send_remark;
 	private String send_name;
+	private BigDecimal balanceTotal;
+	private BigDecimal integralTotal;
+
+	public BigDecimal getIntegralTotal() {
+		return integralTotal;
+	}
+	public void setIntegralTotal(BigDecimal integralTotal) {
+		this.integralTotal = integralTotal;
+	}
+	public BigDecimal getBalanceTotal() {
+		return balanceTotal;
+	}
+	public void setBalanceTotal(BigDecimal balanceTotal) {
+		this.balanceTotal = balanceTotal;
+	}
 	public String getSend_name() {
 		return send_name;
 	}
@@ -334,11 +349,11 @@ public class OrderModel {
 	public void setComeDate(Timestamp comeDate) {
 		this.comeDate = comeDate;
 	}
-	public Boolean getHas_retrn() {
-		return has_retrn;
+	public Boolean getHas_return() {
+		return has_return;
 	}
-	public void setHas_retrn(Boolean has_retrn) {
-		this.has_retrn = has_retrn;
+	public void setHas_return(Boolean has_return) {
+		this.has_return = has_return;
 	}
 	public BigDecimal getPaymentMoney() {
 		return paymentMoney;
@@ -431,7 +446,7 @@ public class OrderModel {
 				", cancelReason='" + cancelReason + '\'' +
 				", in_come=" + in_come +
 				", comeDate=" + comeDate +
-				", has_retrn=" + has_retrn +
+				", has_return=" + has_return +
 				", paymentMoney=" + paymentMoney +
 				", confirm_take=" + confirm_take +
 				", sourceGroup=" + sourceGroup +
@@ -439,6 +454,8 @@ public class OrderModel {
 				", send_account='" + send_account + '\'' +
 				", manager_remark='" + manager_remark + '\'' +
 				", send_remark='" + send_remark + '\'' +
+				", balanceTotal='" + balanceTotal + '\'' +
+				", integralTotal='" + integralTotal + '\'' +
 				'}';
 	}
 }

@@ -1,9 +1,12 @@
 package com.evian.sqct.bean.order;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
-public class OrderProductInfo {
+public class OrderProductInfo implements Serializable {
 
+
+	private static final long serialVersionUID = 5546313632948194382L;
 	private Integer id;
 	private Integer orderId;
 	private Integer pid;
@@ -19,6 +22,14 @@ public class OrderProductInfo {
 	private String pName;
 	private String productPic;
 	private String unit;
+	private Short payMode;
+
+	public Short getPayMode() {
+		return payMode;
+	}
+	public void setPayMode(Short payMode) {
+		this.payMode = payMode;
+	}
 	public Integer getId() {
 		return id;
 	}
@@ -117,6 +128,6 @@ public class OrderProductInfo {
 				+ integral + ", genre=" + genre + ", ifEvaluate=" + ifEvaluate
 				+ ", voucherCode=" + voucherCode + ", voucherMoney="
 				+ voucherMoney + ", pName=" + pName + ", productPic="
-				+ productPic + ", unit=" + unit + "]";
+				+ productPic + ", unit=" + unit + ", payMode=" + payMode + "]";
 	}
 }

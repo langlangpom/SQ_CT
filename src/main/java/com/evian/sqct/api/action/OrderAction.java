@@ -1,12 +1,16 @@
 package com.evian.sqct.api.action;
 
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONException;
+import com.evian.sqct.annotation.ResponseNotAdvice;
 import com.evian.sqct.api.BaseAction;
 import com.evian.sqct.bean.order.*;
+import com.evian.sqct.bean.order.request.ProcBackstageOrderTuihuoSelectReqDTO;
+import com.evian.sqct.exception.ResultException;
+import com.evian.sqct.response.ResultCode;
+import com.evian.sqct.response.ResultVO;
 import com.evian.sqct.service.BaseOrderManager;
 import com.evian.sqct.util.CallBackPar;
-import com.evian.sqct.util.Constants;
-import com.evian.sqct.util.DES.WebConfig;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.*;
+import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @date   2018年10月8日 上午10:39:16
@@ -45,48 +53,33 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("showOrderData.action")
-	public Map<String, Object> showOrderData(Integer accountId,Integer eid,Integer shopId,String beginTime,String endTime,String orderNo,Integer status,Boolean isTicket,Integer payMode,Integer PageIndex,Integer PageSize) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO showOrderData(Integer accountId, Integer eid, Integer shopId, String beginTime, String endTime, String orderNo, Integer status, Boolean isTicket, Integer payMode, Integer PageIndex, Integer PageSize) {
 		long action = System.currentTimeMillis();
 		if(eid==null||shopId==null||beginTime==null||endTime==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
 		
-		try {
-			Order order = new Order();
-			order.setEid(eid);
-			order.setShopId(shopId);
-			order.setEndTime(endTime);
-			order.setBeginTime(beginTime);
-			order.setStatus(status);
-			order.setPageIndex(PageIndex);
-			order.setPageSize(PageSize);
-			order.setOrderNo(orderNo);
-			order.setPayMode(payMode);
+		Order order = new Order();
+		order.setEid(eid);
+		order.setShopId(shopId);
+		order.setEndTime(endTime);
+		order.setBeginTime(beginTime);
+		order.setStatus(status);
+		order.setPageIndex(PageIndex);
+		order.setPageSize(PageSize);
+		order.setOrderNo(orderNo);
+		order.setPayMode(payMode);
 //			if(accountId!=null) {
-				Map<String, Object> resultMap = baseOrderManager.findOrderByShopId_v3(accountId,order,isTicket);
-				
-				setData(parMap, resultMap);
-			/*}else {
-				Map<String, Object> resultMap = baseOrderManager.findOrderByShopId_v2(order,isTicket);
-				setData(parMap, resultMap);
-			}*/
+			Map<String, Object> resultMap = baseOrderManager.findOrderByShopId_v3(accountId,order,isTicket);
+
+		/*}else {
+			Map<String, Object> resultMap = baseOrderManager.findOrderByShopId_v2(order,isTicket);
+			setData(parMap, resultMap);
+		}*/
 			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
 		long time = System.currentTimeMillis()-action;
 		logger.info("[showOrderDataTime:{}]",time);
-		return parMap;
+		return new ResultVO(resultMap);
 	}
 	
 	
@@ -104,43 +97,27 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 //	@RequestMapping("showOrderData.action")
-	public Map<String, Object> showOrderData(Integer eid,Integer shopId,String beginTime,String endTime,String orderNo,Integer status,Boolean isTicket,Integer payMode,Integer PageIndex,Integer PageSize) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO showOrderData(Integer eid,Integer shopId,String beginTime,String endTime,String orderNo,Integer status,Boolean isTicket,Integer payMode,Integer PageIndex,Integer PageSize) {
 		long action = System.currentTimeMillis();
 		if(eid==null||shopId==null||beginTime==null||endTime==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
 		
-		try {
-			Order order = new Order();
-			order.setEid(eid);
-			order.setShopId(shopId);
-			order.setEndTime(endTime);
-			order.setBeginTime(beginTime);
-			order.setStatus(status);
-			order.setPageIndex(PageIndex);
-			order.setPageSize(PageSize);
-			order.setOrderNo(orderNo);
-			order.setPayMode(payMode);
-			Map<String, Object> resultMap = baseOrderManager.findOrderByShopId_v2(order,isTicket);
+		Order order = new Order();
+		order.setEid(eid);
+		order.setShopId(shopId);
+		order.setEndTime(endTime);
+		order.setBeginTime(beginTime);
+		order.setStatus(status);
+		order.setPageIndex(PageIndex);
+		order.setPageSize(PageSize);
+		order.setOrderNo(orderNo);
+		order.setPayMode(payMode);
+		Map<String, Object> resultMap = baseOrderManager.findOrderByShopId_v2(order,isTicket);
 			
-			setData(parMap, resultMap);
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
 		long time = System.currentTimeMillis()-action;
 		logger.info("[showOrderDataTime:{}]",time);
-		return parMap;
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -155,81 +132,66 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 //	@RequestMapping("showOrderData.action")
-	public Map<String, Object> showOrderData(Integer eid,Integer shopId,String beginTime,String endTime,String orderNo,Integer status,String eName,Integer PageIndex,Integer PageSize) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO showOrderData(Integer eid,Integer shopId,String beginTime,String endTime,String orderNo,Integer status,String eName,Integer PageIndex,Integer PageSize) {
 		long action = System.currentTimeMillis();
 		if(eid==null||shopId==null||beginTime==null||endTime==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
 		
-		try {
-			Order order = new Order();
-			order.setEid(eid);
-			order.setShopId(shopId);
-			order.setEndTime(endTime);
-			order.setBeginTime(beginTime);
-			order.setStatus(status);
-			order.setPageIndex(PageIndex);
-			order.setPageSize(PageSize);
-			order.setOrderNo(orderNo);
-			order.seteName(eName);
-			Map<String, Object> OrderByShopIdMap = baseOrderManager.findOrderByShopId(order);
-			
-			List<OrderModel> findOrderByShopId = OrderByShopIdMap.get("orders")==null?new ArrayList<OrderModel>():(List<OrderModel>) OrderByShopIdMap.get("orders");
-			List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-			for (int i = 0; i < findOrderByShopId.size(); i++) {
-				
-				Map<String, Object> map = new HashMap<String, Object>();
-				map.put("orderId", findOrderByShopId.get(i).getOrderId());
-				map.put("orderNo", findOrderByShopId.get(i).getOrderNo());
-				map.put("phone", findOrderByShopId.get(i).getPhone());
-				map.put("contacts", findOrderByShopId.get(i).getContacts());
-				map.put("dateCreated", findOrderByShopId.get(i).getDateCreated());
-				map.put("receivableTotal", findOrderByShopId.get(i).getReceivableTotal());
-				map.put("sendAddress", findOrderByShopId.get(i).getSendAddress());
-				map.put("mobileType", findOrderByShopId.get(i).getMobileType());
-				map.put("orderRemark", findOrderByShopId.get(i).getOrderRemark());
-				map.put("status", findOrderByShopId.get(i).getStatus());
-				map.put("clientId", findOrderByShopId.get(i).getClientId());
-				map.put("payMode", findOrderByShopId.get(i).getPayMode());
-				List<OrderDetail> details = baseOrderManager.selectOrderDetailByOrderId(findOrderByShopId.get(i).getOrderId());
-				List<Map<String, Object>> detailsList = new ArrayList<Map<String, Object>>();
-				for (OrderDetail orderDetail : details) {
-					Map<String, Object> detailMap = new HashMap<String, Object>();
-					detailMap.put("pname", orderDetail.getPname());
-					detailMap.put("pictureUrl", orderDetail.getPictureUrl());
-					detailMap.put("price", orderDetail.getVipPrice());
-					detailMap.put("number", orderDetail.getNumber());
-					detailMap.put("settlementType", orderDetail.getSettlementType());
-					detailMap.put("id", orderDetail.getId());
-					detailsList.add(detailMap);
-				}
-				map.put("orderProductDetail", detailsList);
-				list.add(map);
+		Order order = new Order();
+		order.setEid(eid);
+		order.setShopId(shopId);
+		order.setEndTime(endTime);
+		order.setBeginTime(beginTime);
+		order.setStatus(status);
+		order.setPageIndex(PageIndex);
+		order.setPageSize(PageSize);
+		order.setOrderNo(orderNo);
+		order.seteName(eName);
+		Map<String, Object> OrderByShopIdMap = baseOrderManager.findOrderByShopId(order);
+
+		List<OrderModel> findOrderByShopId = OrderByShopIdMap.get("orders")==null?new ArrayList<OrderModel>():(List<OrderModel>) OrderByShopIdMap.get("orders");
+		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+		for (int i = 0; i < findOrderByShopId.size(); i++) {
+
+			Map<String, Object> map = new HashMap<String, Object>();
+			map.put("orderId", findOrderByShopId.get(i).getOrderId());
+			map.put("orderNo", findOrderByShopId.get(i).getOrderNo());
+			map.put("phone", findOrderByShopId.get(i).getPhone());
+			map.put("contacts", findOrderByShopId.get(i).getContacts());
+			map.put("dateCreated", findOrderByShopId.get(i).getDateCreated());
+			map.put("receivableTotal", findOrderByShopId.get(i).getReceivableTotal());
+			map.put("sendAddress", findOrderByShopId.get(i).getSendAddress());
+			map.put("mobileType", findOrderByShopId.get(i).getMobileType());
+			map.put("orderRemark", findOrderByShopId.get(i).getOrderRemark());
+			map.put("status", findOrderByShopId.get(i).getStatus());
+			map.put("clientId", findOrderByShopId.get(i).getClientId());
+			map.put("payMode", findOrderByShopId.get(i).getPayMode());
+			List<OrderDetail> details = baseOrderManager.selectOrderDetailByOrderId(findOrderByShopId.get(i).getOrderId());
+			List<Map<String, Object>> detailsList = new ArrayList<Map<String, Object>>();
+			for (OrderDetail orderDetail : details) {
+				Map<String, Object> detailMap = new HashMap<String, Object>();
+				detailMap.put("pname", orderDetail.getPname());
+				detailMap.put("pictureUrl", orderDetail.getPictureUrl());
+				detailMap.put("price", orderDetail.getVipPrice());
+				detailMap.put("number", orderDetail.getNumber());
+				detailMap.put("settlementType", orderDetail.getSettlementType());
+				detailMap.put("id", orderDetail.getId());
+				detailsList.add(detailMap);
 			}
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("orders", list);
-			resultMap.put("Count", OrderByShopIdMap.get("Count"));
-			if(PageIndex!=null){
-				resultMap.put("page", PageIndex);
-			}
-			setData(parMap, resultMap);
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+			map.put("orderProductDetail", detailsList);
+			list.add(map);
 		}
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("orders", list);
+		resultMap.put("Count", OrderByShopIdMap.get("Count"));
+		if(PageIndex!=null){
+			resultMap.put("page", PageIndex);
+		}
+
 		long time = System.currentTimeMillis()-action;
 		logger.info("[showOrderDataTime:{}]",time);
-		return parMap;
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -239,31 +201,16 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("showOrderProductData.action")
-	public Map<String, Object> showOrderProductData(Integer eid,Integer orderId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO showOrderProductData(Integer eid,Integer orderId) {
 		if(eid==null||orderId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
 		
-		try {
-			List<OrderProductInfo> findOrderProductInfo = baseOrderManager.findOrderProductInfo(orderId, eid);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("orderProducts", findOrderProductInfo);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		List<OrderProductInfo> findOrderProductInfo = baseOrderManager.findOrderProductInfo(orderId, eid);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("orderProducts", findOrderProductInfo);
+
+		return new ResultVO(resultMap);
 	}
 		
 	/**
@@ -272,10 +219,9 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("showBalanceData.action")
-	public Map<String, Object> showBalanceData() {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		
-		return parMap;
+	public ResultVO showBalanceData() {
+
+		return new ResultVO();
 	}
 		
 	/**
@@ -284,34 +230,19 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("ordercuishui.action")
-	public Map<String, Object> ordercuishui(Integer eid,Integer orderId,String remark) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO ordercuishui(Integer eid,Integer orderId,String remark) {
 		if(eid==null||orderId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
 		
-		try {
-			if(remark==null){
-				remark = "赶紧整";
-			}
-			String cuidan = baseOrderManager.cuidan(eid, orderId, remark);
-			if(!"1".equals(cuidan)){
-				setCode(parMap, 150);
-				setMessage(parMap, cuidan);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		if(remark==null){
+			remark = "赶紧整";
 		}
-		return parMap;
+		String cuidan = baseOrderManager.cuidan(eid, orderId, remark);
+		if(!"1".equals(cuidan)){
+			throw new ResultException(cuidan);
+		}
+		return new ResultVO();
 	}
 		
 	/**
@@ -320,31 +251,16 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("applyForDrawback.action")
-	public Map<String, Object> applyForDrawback(Integer orderId,Integer userId,String th_type,String th_reason,String th_remark,String th_CreateUser) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO applyForDrawback(Integer orderId,Integer userId,String th_type,String th_reason,String th_remark,String th_CreateUser) {
 		if(orderId==null||userId==null||th_type==null||th_reason==null||th_remark==null||th_CreateUser==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			
-			String drawback = baseOrderManager.drawback(orderId, userId, th_type, th_reason, th_remark, th_CreateUser);
-			if(!"1".equals(drawback)){
-				setCode(parMap, 150);
-				setMessage(parMap, drawback);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+
+		String drawback = baseOrderManager.drawback(orderId, userId, th_type, th_reason, th_remark, th_CreateUser);
+		if(!"1".equals(drawback)){
+			throw new ResultException(drawback);
 		}
-		return parMap;
+		return new ResultVO();
 	}
 	
 	/**
@@ -353,34 +269,44 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("cancellationOfOrder.action")
-	public Map<String, Object> cancellationOfOrder(Integer orderId,Integer clientId,Integer eid,String cancelReason,String e_order_detail_ID) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO cancellationOfOrder(Integer orderId,Integer clientId,Integer eid,String cancelReason,String e_order_detail_ID,Integer accountId) {
 		if(orderId==null||clientId==null||eid==null||cancelReason==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			JSONArray parseArray = null;
-			if(!StringUtils.isEmpty(e_order_detail_ID)) {
+		JSONArray parseArray = null;
+		if(!StringUtils.isEmpty(e_order_detail_ID)) {
+			try {
 				parseArray = JSONArray.parseArray(e_order_detail_ID);
+			} catch (JSONException e) {
+				return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 			}
-			String cancellationOfOrder = baseOrderManager.cancellationOfOrder(orderId, clientId, eid, cancelReason,parseArray);
-			if(!"1".equals(cancellationOfOrder)){
-				setCode(parMap, 150);
-				setMessage(parMap, cancellationOfOrder);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
 		}
-		return parMap;
+		String cancellationOfOrder = baseOrderManager.cancellationOfOrder(orderId, clientId, eid, cancelReason,parseArray,accountId);
+		if(!"1".equals(cancellationOfOrder)){
+			throw new ResultException(cancellationOfOrder);
+		}
+		StringBuilder logisticsDescribe = new StringBuilder("商家取消单据，原因：");
+		if(parseArray==null){
+			logisticsDescribe.append(cancelReason);
+		}else{
+			logisticsDescribe.append(cancelReason);
+			// 部分取消商品名
+		}
+		// 物流消息
+		baseOrderManager.saveEOrderLogisticsByOrderId(new EOrderLogistics(orderId,1,logisticsDescribe.toString()));
+		if(accountId==null){
+			return new ResultVO();
+		}
+		// 变更消息
+		ProcAppOrderSendSaveLogisticsDTO dto = new ProcAppOrderSendSaveLogisticsDTO();
+		dto.setMsgType(OrderLogisticsMsgType.APP_CANCEL.getType());
+		dto.setOrderId(orderId);
+		dto.setSend_accountId(accountId);
+		dto.setDataReson(3);
+		dto.setCreater(accountId+"");
+		dto.setLogMsg("水趣商户取消订单");
+		baseOrderManager.addOrderSendLogs(dto);
+		return new ResultVO();
 	}
 	
 	/**
@@ -389,30 +315,17 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("orderChangeInformation.action")
-	public Map<String, Object> orderChangeInformation(Integer orderId,String orderNo,Integer eid) {
+	public ResultVO orderChangeInformation(Integer orderId,String orderNo,Integer eid) {
 		Map<String, Object> parMap = CallBackPar.getParMap();
 		if(orderId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			
 
-			// 添加变更信息
-			List<Map<String, Object>> changeInformation = new ArrayList<Map<String, Object>>();
+
+		// 添加变更信息
+		List<Map<String, Object>> changeInformation = new ArrayList<Map<String, Object>>();
 //			resultMap.put("changeInformation", changeInformation);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		return new ResultVO();
 	}
 		
 
@@ -424,53 +337,33 @@ public class OrderAction extends BaseAction {
 	 */
 	@RequestMapping("findSysOrderCancelCause.action")
 	public Map<String, Object> findSysOrderCancelCause(Integer eid, String typeClass) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			List<ESysBaseType> selectSysOrderCancelCause = baseOrderManager.selectSysOrderCancelCause(eid, typeClass);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("cause", selectSysOrderCancelCause);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		List<ESysBaseType> selectSysOrderCancelCause = baseOrderManager.selectSysOrderCancelCause(eid, typeClass);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("cause", selectSysOrderCancelCause);
+		return resultMap;
 	}
 	
 
 	/**
-	 * 92.查询系统默认取消原因
+	 * 93.订单配送完成
 	 * @param orderId			订单ID
 	 * @param eid				企业ID
 	 * @return
 	 */
 	@RequestMapping("updateOrderAccomplish.action")
-	public Map<String, Object> updateOrderAccomplish(Integer eid, Integer orderId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO updateOrderAccomplish(Integer eid, Integer orderId,String account) {
 		if(orderId==null||eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			 Integer updateOrderAccomplish = baseOrderManager.updateOrderAccomplish(orderId,eid);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		 String updateOrderAccomplish = baseOrderManager.updateOrderAccomplish(orderId,eid,account);
+		 if(!"1".equals(updateOrderAccomplish)){
+		 	if(StringUtils.isBlank(updateOrderAccomplish)){
+		 		updateOrderAccomplish = "单据信息已变更";
+			}
+		 	throw new ResultException(updateOrderAccomplish);
+		 }
+		baseOrderManager.saveEOrderLogisticsByOrderId(new EOrderLogistics(orderId,1,"订单已配送完成，感谢您的支持！"));
+		return new ResultVO();
 	}
 	
 	/**
@@ -481,27 +374,13 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("sendJpushMessageAndUpdateOrderStatus.action")
-	public Map<String, Object> sendJpushMessageAndUpdateOrderStatus(Integer eid, Integer orderId,Integer contactsId,String contacts,String phone,String arriveTime) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO sendJpushMessageAndUpdateOrderStatus(Integer eid, Integer orderId,Integer contactsId,String contacts,String phone,String arriveTime) {
 		if(orderId==null||eid==null||contactsId==null||contacts==null||phone==null||arriveTime==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Integer updateOrderAccomplish = baseOrderManager.sendJpushMessageAndUpdateOrderStatus(orderId, eid, contactsId, contacts, phone, arriveTime);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		Integer updateOrderAccomplish = baseOrderManager.sendJpushMessageAndUpdateOrderStatus(orderId, eid, contactsId, contacts, phone, arriveTime);
+
+		return new ResultVO();
 	}
 	
 
@@ -512,30 +391,15 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findLogistics.action")
-	public Map<String, Object> findLogistics(Integer orderId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findLogistics(Integer orderId) {
 		if(orderId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<EOrderLogistics> selectEOrderLogisticsByOrderId = baseOrderManager.selectEOrderLogisticsByOrderId(orderId);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("logistics", selectEOrderLogisticsByOrderId);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		List<EOrderLogistics> selectEOrderLogisticsByOrderId = baseOrderManager.selectEOrderLogisticsByOrderId(orderId);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("logistics", selectEOrderLogisticsByOrderId);
+
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -550,36 +414,18 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("orderRefund.action")
-	public Map<String, Object> orderRefund(Integer orderId,Integer eid,Double refundMoney,String auditType,String taAccount,String auditUser,String auditRemark,Integer ifaudit) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	@ResponseNotAdvice
+	public Object orderRefund(Integer orderId,Integer eid,Double refundMoney,String auditType,String taAccount,String auditUser,String auditRemark,Integer ifaudit) {
 		if(orderId==null||eid==null||auditUser==null||auditRemark==null||ifaudit==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
 		if(ifaudit.intValue()==1) {
 			if(refundMoney==null||auditType==null) {
-				int code = Constants.CODE_ERROR_PARAM;
-				String message = Constants.getCodeValue(code);
-				parMap.put("code", code);
-				parMap.put("message", message);
-				return parMap;
+				return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 			}
 		}
-		try {
-			parMap = baseOrderManager.orderRefund(eid, orderId, refundMoney, auditType, taAccount, auditUser, auditRemark,ifaudit);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+
+		return baseOrderManager.orderRefund(eid, orderId, refundMoney, auditType, taAccount, auditUser, auditRemark,ifaudit);
 	}
 
 	/**
@@ -589,21 +435,9 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findTuihuo.action")
-	public Map<String, Object> findTuihuo(Integer orderId,String beginTime,String endTime,Integer eid,String eName,String orderNo,String account,String th_type,String paymentPlatform,Integer ifaudit,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			Map<String, Object> resultMap = baseOrderManager.selectTuihuo(orderId, beginTime, endTime, eid, eName, orderNo, account, th_type, paymentPlatform, ifaudit, PageIndex, PageSize, IsSelectAll);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+	public Map<String, Object> findTuihuo(ProcBackstageOrderTuihuoSelectReqDTO dto) {
+		Map<String, Object> resultMap = baseOrderManager.selectTuihuo(dto);
+		return resultMap;
 	}
 	
 	/**
@@ -612,28 +446,12 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findRefundLog.action")
-	public Map<String, Object> findRefundLog(Integer orderId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findRefundLog(Integer orderId) {
 		if(orderId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Map<String, Object>> selectRefundLog = baseOrderManager.selectRefundLog(orderId);
-			setData(parMap, selectRefundLog);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		List<Map<String, Object>> selectRefundLog = baseOrderManager.selectRefundLog(orderId);
+		return new ResultVO(selectRefundLog);
 	}
 	
 	/**
@@ -643,20 +461,8 @@ public class OrderAction extends BaseAction {
 	 */
 	@RequestMapping("findBalanceEvery.action")
 	public Map<String, Object> findBalanceEvery(String beginTime,String endTime,Integer eid,String eName,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			Map<String, Object> balance = baseOrderManager.selectBalanceEvery(beginTime, endTime, eid, eName, PageIndex, PageSize, IsSelectAll);
-			setData(parMap, balance);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		Map<String, Object> balance = baseOrderManager.selectBalanceEvery(beginTime, endTime, eid, eName, PageIndex, PageSize, IsSelectAll);
+		return balance;
 	}
 	
 	/**
@@ -666,63 +472,29 @@ public class OrderAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("shopManagerAllotOrder.action")
-	public Map<String, Object> shopManagerAllotOrder(Integer manager_accountId,Integer send_accountId,Integer eid,Integer shopId,String orderIds,String remark) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO shopManagerAllotOrder(Integer manager_accountId,Integer send_accountId,Integer eid,Integer shopId,String orderIds,String remark) {
 		if(manager_accountId==null||send_accountId==null||eid==null||shopId==null||orderIds==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
+
+		JSONArray os = null;
 		try {
-			
-			JSONArray os = null;
-			try {
-				os = JSONArray.parseArray(orderIds);
-			} catch (Exception e) {
-				int code = Constants.CODE_ERROR_PARAM;
-				String message = Constants.getCodeValue(code);
-				parMap.put("code", code);
-				parMap.put("message", message);
-				return parMap;
-			}
-			int o = baseOrderManager.insertDeliverymanOrder(manager_accountId, send_accountId, eid, shopId, os, 2, remark);
+			os = JSONArray.parseArray(orderIds);
 		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		
-		return parMap;
+		int o = baseOrderManager.insertDeliverymanOrder(manager_accountId, send_accountId, eid, shopId, os, 2, remark);
+
+		return new ResultVO();
 	}
 	
 	@RequestMapping("getStatusOrders.action")
-	public Map<String, Object> getStatusOrders(Integer statusId, Integer pageIndex, Integer clientId,Integer eid,Integer shopId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO getStatusOrders(Integer statusId, Integer pageIndex, Integer clientId,Integer eid,Integer shopId) {
 		if(clientId==null||eid==null||shopId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Map<String, Object> result = baseOrderManager.getStatusOrders(statusId, pageIndex, clientId, eid,shopId);
-			setData(parMap, result);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		Map<String, Object> result = baseOrderManager.getStatusOrders(statusId, pageIndex, clientId, eid,shopId);
+		return new ResultVO(result);
 	}
 
 	/**
@@ -731,19 +503,111 @@ public class OrderAction extends BaseAction {
 	 */
 	@RequestMapping("findEticketTuiKeStatistics.action")
 	public Map<String, Object> findEticketTuiKeStatistics(String beginTime,String endTime,Integer eid,String tuiKeAccount,String tuiKeManageAccount,String pname,String account,Integer status,Boolean isHistory,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			Map<String, Object> map = baseOrderManager.Proc_Backstage_order_detail_eticketTuiKe_select(beginTime, endTime, eid, tuiKeAccount, tuiKeManageAccount, pname, account, status, isHistory, PageIndex, PageSize, IsSelectAll);
-			setData(parMap, map);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-
-		return parMap;
+		Map<String, Object> map = baseOrderManager.Proc_Backstage_order_detail_eticketTuiKe_select(beginTime, endTime, eid, tuiKeAccount, tuiKeManageAccount, pname, account, status, isHistory, PageIndex, PageSize, IsSelectAll);
+		return map;
 	}
+	/**
+	 *170.水趣中台-近期电子票配送合计
+	 * @return
+	 */
+	@RequestMapping("findEticketTuiKeSelectStatistics.action")
+	public ResultVO findEticketTuiKeSelectStatistics(String beginTime,String endTime,Integer eid,String tuiKeAccount,String tuiKeManageAccount,String pname,Integer status,Boolean isHistory,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
+		if(isHistory==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		Map<String, Object> map = baseOrderManager.Proc_Backstage_order_detail_eticketTuiKe_select_statistics(beginTime, endTime, eid, tuiKeAccount, tuiKeManageAccount, pname, status, isHistory, PageIndex, PageSize, IsSelectAll);
+		return new ResultVO(map);
+	}
+
+	/**
+	 *186.中台及APP端订单派单处理
+	 * @return
+	 */
+	@RequestMapping("appOrderSendSaveUP.action")
+	public ResultVO appOrderSendSaveUP(@Valid ProcAppOrderSendSaveUPDTO procAppOrderSendSaveUPDTO) {
+		String result = baseOrderManager.appOrderSendSaveUP(procAppOrderSendSaveUPDTO);
+		if(!"1".equals(result)){
+			if(StringUtils.isBlank(result)){
+				// 订单状态已变更cancellationOfOrder
+				return new ResultVO(ResultCode.CODE_ERROR_ORDER_ALTERATION);
+			}else{
+				throw new ResultException(result);
+			}
+		}else{
+			baseOrderManager.operOrderSendLogs(procAppOrderSendSaveUPDTO);
+		}
+		return new ResultVO();
+	}
+
+
+	/**
+	 * 187.根据用户权限显示分配的订单信息
+	 * @param eid				企业ID
+	 * @param shopId			店铺ID
+	 * @param beginTime			下单时间
+	 * @param endTime			下单时间
+	 * @param status			状态(0:待审核 1:待派送 2:已派送 3:已送到  -1:已取消)
+	 * @param isTicket			是否只查询电子票订单
+	 * @param payMode			支付方式  1:货到付款 2:在线支付 3:电子水票
+	 * @param pageIndex			第几页(不传的话 默认显示全部)
+	 * @param pageSize			每页显示多少行
+	 * @return [eid=1, shopId=369, accountId=null, beginTime=null, endTime=null, status=1, payMode=null, orderNo=null, isTicket=null, iRows=0, PageSize=10]]
+	 */
+	@RequestMapping("sendOrderDataSelect.action")
+	public Map<String, Object> sendOrderDataSelect(@Valid ProcAppOrderSendSelectDTO dto) {
+		return baseOrderManager.findOrderByShopId_v4(dto);
+	}
+
+	/**
+	 * 188.查询配送订单日志跟踪
+	 * @param orderId
+	 * @return
+	 */
+	@RequestMapping("sendOrdertailAfter.action")
+	public ResultVO sendOrdertailAfter(Integer orderId){
+		if(orderId==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		List<Map<String, Object>> maps = baseOrderManager.sendOrdertailAfter(orderId);
+		Map<String, Object> map = new HashMap<>(1);
+		map.put("logs",maps);
+		return new ResultVO(map);
+	}
+	/**
+	 * 188.查询配送订单日志跟踪
+	 * @param orderId
+	 * @return
+	 */
+	@RequestMapping("addOrderSendLogs.action")
+	public ResultVO addOrderSendLogs(@Valid ProcAppOrderSendSaveLogisticsDTO dto){
+		String result = baseOrderManager.addOrderSendLogs(dto);
+		if(!"E00000".equals(result)){
+			// 操作失败
+			return new ResultVO(ResultCode.CODE_ERROR_OPERATION);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 199.退押申请记录
+	 * @param orderId
+	 * @return
+	 */
+	@RequestMapping("findTuiyaRecord.action")
+	public Map<String,Object> findTuiyaRecord(ProcBackstageClientPledgeTuiyaSelectDTO dto){
+		return baseOrderManager.selectTuiyaRecord(dto);
+	}
+
+	/**
+	 * 205.查询变更通知列表
+	 * @param orderId
+	 * @return
+	 */
+	@RequestMapping("findSendOrderLogisticsByAccountId.action")
+	public Map<String,Object> findSendOrderLogisticsByAccountId(@Valid FindSendOrderLogisticsByAccountIdReqDTO dto){
+		return  baseOrderManager.selectSendOrderLogisticsByAccountId(dto);
+	}
+
+
+
 }

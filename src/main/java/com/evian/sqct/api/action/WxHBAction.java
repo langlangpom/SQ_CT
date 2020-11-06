@@ -1,28 +1,24 @@
 package com.evian.sqct.api.action;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import javax.servlet.http.HttpServletRequest;
-
+import com.evian.sqct.api.BaseAction;
+import com.evian.sqct.bean.util.WXHB;
+import com.evian.sqct.exception.BaseRuntimeException;
+import com.evian.sqct.response.ResultCode;
+import com.evian.sqct.response.ResultVO;
+import com.evian.sqct.service.BaseWxHBManager;
+import com.evian.sqct.service.WxPayService;
+import com.evian.sqct.util.XmlStringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.evian.sqct.api.BaseAction;
-import com.evian.sqct.bean.util.WXHB;
-import com.evian.sqct.service.BaseOrderManager;
-import com.evian.sqct.service.BaseWxHBManager;
-import com.evian.sqct.util.CallBackPar;
-import com.evian.sqct.util.Constants;
-import com.evian.sqct.util.XmlStringUtil;
-import com.evian.sqct.wxHB.WxPayHB;
+import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 
 /**
@@ -36,15 +32,14 @@ public class WxHBAction  extends BaseAction{
 
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	
+
+
 	@Autowired
-	WxPayHB wxph;
+	private WxPayService wxPayService;
 	
 	@Autowired
 	private BaseWxHBManager baseWxHBManager;
-	
 
-	@Autowired
-	private BaseOrderManager baseOrderManager;
 	
 	/**
 	 * 
@@ -54,16 +49,11 @@ public class WxHBAction  extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("commonRedPacketSendDetection")
-	public Map<String, Object> commonRedPacketSendDetection(HttpServletRequest request,String openId,Integer recordId) throws Exception{
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO commonRedPacketSendDetection(HttpServletRequest request,String openId,Integer recordId) throws Exception{
 		if(openId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO<>(ResultCode.CODE_ERROR_PARAM);
 		}
-		List<Map<String, Object>> sendList = new ArrayList<Map<String, Object>>();
+		List<Map<String, Object>> sendList = null;
 		if(recordId!=null) {
 			sendList = baseWxHBManager.redpackSserRecordResendSelect(openId, recordId);
 		}else {
@@ -72,17 +62,8 @@ public class WxHBAction  extends BaseAction{
 		}
 		
 		for (Map<String, Object> map : sendList) {
-			/*map.get("openId");
-			map.get("appId");
-			map.get("eid");
-			map.get("mchId");
-			map.get("partnerKey");
-			map.get("redpackMoney");*/
-			
 			if(map.get("tag")!=null&&!"1".equals(map.get("tag").toString())) {
-				parMap.put("code", "E00001");
-				parMap.put("message", map.get("tag").toString());
-				break;
+				throw BaseRuntimeException.jointCodeAndMessage("E00001",map.get("tag").toString());
 			}
 			String mchId = map.get("mchId").toString();
 			
@@ -110,43 +91,33 @@ public class WxHBAction  extends BaseAction{
 			w.setActName(map.get("activityName")==null?"水趣驿站欢乐送":map.get("activityName").toString());	// 活动名称
 			w.setRemark(map.get("synopsis")==null?"红包发送":map.get("synopsis").toString());			// 备注信息  不显示的
 			w.setAppKey(map.get("partnerKey").toString());
-			String sendredpack = wxph.sendredpack(w);
-			Map<String, Object> sendredpackMap = new HashMap<String, Object>();
 			try {
-				
-				sendredpackMap = XmlStringUtil.stringToXMLParse(sendredpack);
+				String sendredpack = wxPayService.sendredpack(w);
+
+				Map<String, Object> sendredpackMap = XmlStringUtil.stringToXMLParse(sendredpack);
 				
 				String tag = baseWxHBManager.redpackUserRecordWechatSendLogOperat(sendredpackMap);
 				logger.info("[发放结果记录TAG:{}]",tag);
-				String result_code = (String) sendredpackMap.get("result_code");
-				
-				// 发送失败
-				if("FAIL".equals(result_code)) {
-					String err_code = (String) sendredpackMap.get("err_code");
-					if("CA_ERROR".equals(err_code)) {
-						logger.error("[证书异常：开始下载证书] [发放结果记录TAG:{}]",tag);
-						baseOrderManager.qrcodeVisitReply(mchId);
-						
-						// 重新发送
-						sendredpack = wxph.sendredpack(w);
-						sendredpackMap = XmlStringUtil.stringToXMLParse(sendredpack);
-						tag = baseWxHBManager.redpackUserRecordWechatSendLogOperat(sendredpackMap);
-						logger.info("[发放结果记录TAG:{}]",tag);
-					}
-				}
-			} catch (Exception e) {
+			} catch (BaseRuntimeException.ResultErrorCodeMessage e) {
 				// TODO Auto-generated catch block
-				logger.error("[Exception:{}] [sendredpack:{}]",new Object[] {e.getMessage(),sendredpack});
+				logger.error("[红包发放错误 Exception:{}]",new Object[] {e});
+				throw e;
+
 			}
 		}
 		
-		return parMap;
+		return new ResultVO();
 	}
-	
+
+	/**
+	 * 服务Api
+	 * @param status
+	 * @return
+	 */
 	@RequestMapping("gethbinfo")
-	public Map<String, Object> gethbinfo(String status){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		if("SELECT_HBZT".equals(status)) { // 红包查询
+	public ResultVO gethbinfo(String status){
+		// 红包查询
+		if("SELECT_HBZT".equals(status)) {
 			try {
 				baseWxHBManager.recordSelectForValid();
 			} catch (Exception e) {
@@ -156,7 +127,7 @@ public class WxHBAction  extends BaseAction{
 			
 		}
 		
-		return parMap;
+		return new ResultVO();
 	}
 
 }

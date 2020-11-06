@@ -5,7 +5,6 @@ import com.evian.sqct.util.DES.EvianHelp_DES;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -17,7 +16,8 @@ import javax.sql.DataSource;
  * @author XHX
  * @Description 配置druid多数据源
  */
-@Configuration
+//@Configuration
+//@MapperScan(basePackages="com.evian.sqct.dao.mybatis.dao")
 public class DruidDataSourceConfig {
 	
 	@Autowired  
@@ -28,8 +28,6 @@ public class DruidDataSourceConfig {
 	@Primary//配置该数据源为主数据源
     @Qualifier("primaryDataSource")
     public DataSource primaryDataSource(){
-        System.out.println("sdfsdfsdf+="+env.getProperty("spring.datasource.url"));
-
 		DruidDataSource dataSource = new DruidDataSource();
 		dataSource.setUrl(EvianHelp_DES.decrypt_move(env.getProperty("spring.datasource.url"),EvianHelp_DES.java_net_key,true)); //解密后的连接地址
         dataSource.setUsername(EvianHelp_DES.decrypt_move(env.getProperty("spring.datasource.username"),EvianHelp_DES.java_net_key,true));//解密后的用户名  

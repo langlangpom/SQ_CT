@@ -37,4 +37,7 @@ public interface IActivityDao {
     Map<String,Object> Proc_Backstage_appMerchant_share_code_activity_present_record_present(Integer eid,Integer activityId,Integer accountId,Integer codeTypeId,String cellphone);
 
     Map<String,Object> Proc_Backstage_appMerchant_share_code_activity_present_record_select(String beginTime,String endTime,Integer activityId,Integer accountId,Integer eid,Integer codeTypeId,String code,Boolean isComplete,Integer clientId,String cellphone,String staffAccount,Boolean isSendCellphone,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+
+
+
 }

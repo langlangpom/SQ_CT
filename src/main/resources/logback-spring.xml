@@ -5,8 +5,7 @@
 	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
 		<Target>System.out</Target>
 		<encoder>
-			<pattern>[%-5p] [%d{yyyy-MM-dd HH:mm:ss}] [%t] [%C{1}:%M:%L] %m%n
-			</pattern>
+			<pattern>[%-5p] [%d{yyyy-MM-dd HH:mm:ss}] [%t] [%C{1}:%M:%L] %m%n</pattern>
 		</encoder>
 		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
 			<level>DEBUG</level>
@@ -16,15 +15,13 @@
 	<appender name="DAILY_ROLLING_FILE"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<encoder>
-			<pattern>[%-5p] [%d{yyyy-MM-dd HH:mm:ss}] [%t] [%C{1}:%M:%L] %m%n
-			</pattern>
+			<pattern>[%-5p] [%d{yyyy-MM-dd HH:mm:ss}] [%t] [%C{1}:%M:%L] %m%n</pattern>
 		</encoder>
 		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
 			<level>INFO</level>
 		</filter>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>/data/logs/sqct/info.%d{yyyy-MM-dd}.log
-			</fileNamePattern>
+			<fileNamePattern>/data/logs/sqct/info.%d{yyyy-MM-dd}.log</fileNamePattern>
 			<!-- 保存一个月的日志 -->
             <MaxHistory>30</MaxHistory>
 		</rollingPolicy>
@@ -33,15 +30,13 @@
 	<appender name="ERROR_DAILY_ROLLING_FILE"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<encoder>
-			<pattern>[%-5p] [%d{yyyy-MM-dd HH:mm:ss}] [%t] [%C{1}:%M:%L] %m%n
-			</pattern>
+			<pattern>[%-5p] [%d{yyyy-MM-dd HH:mm:ss}] [%t] [%C{1}:%M:%L] %m%n</pattern>
 		</encoder>
 		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
 			<level>ERROR</level>
 		</filter>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>/data/logs/sqct/error.%d{yyyy-MM-dd}.log
-			</fileNamePattern>
+			<fileNamePattern>/data/logs/sqct/error.%d{yyyy-MM-dd}.log</fileNamePattern>
 			<!-- 保存一个月的日志 -->
             <MaxHistory>30</MaxHistory>
 		</rollingPolicy>

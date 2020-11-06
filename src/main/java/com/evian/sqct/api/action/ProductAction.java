@@ -1,25 +1,28 @@
 package com.evian.sqct.api.action;
 
+import com.evian.sqct.api.BaseAction;
+import com.evian.sqct.bean.product.Product;
+import com.evian.sqct.bean.product.ProductClass;
+import com.evian.sqct.bean.product.input.ProcBackstageProductSpecsRelevantIsEnableReqDTO;
+import com.evian.sqct.bean.product.input.ProcBackstageProductSpecsRelevantSelectReqDTO;
+import com.evian.sqct.bean.product.input.ProcXHXProductSaleStatisticsReqDTO;
+import com.evian.sqct.exception.ResultException;
+import com.evian.sqct.response.ResultCode;
+import com.evian.sqct.response.ResultVO;
+import com.evian.sqct.service.BaseProductManager;
+import com.evian.sqct.util.CallBackPar;
+import com.evian.sqct.util.DES.WebConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.evian.sqct.api.BaseAction;
-import com.evian.sqct.bean.product.Product;
-import com.evian.sqct.bean.product.ProductClass;
-import com.evian.sqct.bean.product.ProductDTO;
-import com.evian.sqct.service.BaseProductManager;
-import com.evian.sqct.util.CallBackPar;
-import com.evian.sqct.util.Constants;
-import com.evian.sqct.util.DES.WebConfig;
 
 /**
  * @date   2018年10月8日 上午11:15:28
@@ -36,14 +39,9 @@ public class ProductAction extends BaseAction {
 	BaseProductManager baseProductManager;
 	
 	@RequestMapping("productClassSelect.action")
-	public Map<String, Object> productClassSelect(Integer eid,Integer cid,Boolean enabled,Integer pageIndex,Integer pageSize) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public Object productClassSelect(Integer eid,Integer cid,Boolean enabled,Integer pageIndex,Integer pageSize) {
 		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO<>(ResultCode.CODE_ERROR_PARAM);
 		}
 		try {
 			List<ProductClass> findProductClass = baseProductManager.findProductClass(eid, cid, enabled, pageIndex, pageSize);
@@ -62,16 +60,12 @@ public class ProductAction extends BaseAction {
 			}
 			Map<String, Object> resultMap = new HashMap<String, Object>();
 			resultMap.put("productClass", list);
-			setData(parMap, resultMap);
+			return resultMap;
 		} catch (Exception e) {
 			logger.error("[project:{}] [exception:{}]", new Object[] {
 					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+			return new ResultVO<>(ResultCode.CODE_ERROR_SYSTEM);
 		}
-		return parMap;
 	}
 	
 
@@ -81,29 +75,65 @@ public class ProductAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findEidProduct.action")
-	public Map<String, Object> findEidProduct(@RequestBody Product product){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		if(product.getEid()==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
-		}
-		try {
-			List<ProductDTO> products = baseProductManager.selectProductEid(product);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("products", products);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+	public Map<String,Object> findEidProduct(Product product){
+		return baseProductManager.selectProductEid(product);
 	}
+
+
+	/**
+	 * 172.库存数量修改
+	 * @param shopId
+	 * @return
+	 */
+	@RequestMapping("stockNumOperat.action")
+	public ResultVO stockNumOperat(Integer tsId,Integer eid,Integer changeStockNum,String createUser){
+		Map<String, Object> parMap = CallBackPar.getParMap();
+		if(tsId==null||eid==null||changeStockNum==null||createUser==null) {
+			return new ResultVO<>(ResultCode.CODE_ERROR_PARAM);
+		}
+		String tag = baseProductManager.Proc_Backstage_product_stock_num_operat(tsId, eid, changeStockNum, createUser);
+		if(!"1".equals(tag)){
+			throw new ResultException(tag);
+		}
+		return new ResultVO();
+	}
+
+
+	/**
+	 * 250.商品规格查询
+	 * @param shopId
+	 * @return
+	 */
+	@RequestMapping("findProductSpecs.action")
+	public Map<String,Object> findProductSpecs(@Valid ProcBackstageProductSpecsRelevantSelectReqDTO dto){
+		return baseProductManager.Proc_Backstage_product_specs_relevant_select(dto);
+	}
+
+
+	/**
+	 * 251.商品规格上下架
+	 * @param shopId
+	 * @return
+	 */
+	@RequestMapping("productSpecsEnable.action")
+	public ResultVO productSpecsEnable(@Valid ProcBackstageProductSpecsRelevantIsEnableReqDTO dto){
+		String tag = baseProductManager.Proc_Backstage_product_specs_relevant_isEnable(dto);
+		if(!"1".equals(tag)){
+			return new ResultVO(ResultCode.CODE_ERROR_OPERATION);
+		}
+		return new ResultVO();
+	}
+
+
+	/**
+	 * 252.商品销售统计
+	 * @param shopId
+	 * @return
+	 */
+	@RequestMapping("productSaleStatistics.action")
+	public Map<String,Object> productSaleStatistics(@Valid ProcXHXProductSaleStatisticsReqDTO dto){
+		return baseProductManager.Proc_XHX_product_sale_statistics(dto);
+	}
+
 	
 }

@@ -1,17 +1,16 @@
 package com.evian.sqct.inteceptors;
 
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.evian.sqct.util.RequestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
-import com.evian.sqct.util.RequestUtils;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
 
 
 /**
@@ -21,6 +20,7 @@ import com.evian.sqct.util.RequestUtils;
  * @author XHX
  *
  */
+@Component
 public class LoggerParamsInteceptor implements HandlerInterceptor{
 	
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.evian.sqct.dao.mybatis.primaryDataSource.dao.IThirdPartyMapperDao">
+
+
+    <delete id="deleteRecruitGood">
+        delete from e_recruit_good where id=#{id}
+    </delete>
+
+    <select id="selectRecruitOrderByOrderGuid" resultType="com.evian.sqct.bean.thirdParty.RecruitOrderPojoBean">
+        select xid, sq_platform_id, platform_id, store_no, store_name, trade_status, trade_update_sign, refund_status, trade_no,
+        src_tids, shop_no, trade_time, pay_time, to_deliver_time, buyer_nick, receiver_name, receiver_mobile, receiver_telno,
+        receiver_province, receiver_city, receiver_district, receiver_address, buyer_message, cs_remark, short_id, fetch_code,
+        ma_code, cancel_code, goods_count, goods_amount, receivable, paid, discount, post_amount, invoice_type,
+        invoice_title, invoice_content, invoice_id, dateCreated, dateUpdate, eid, rec_id, src_oid, goods_name, spec_name,
+        goods_no, spec_no, spec_code, num, price, actual_num, suite_name, suite_no, suite_num, suite_amount, goods_id,
+        order_guid, id, shop_id
+        from e_recruit_order where order_guid = #{order_guid}
+    </select>
+</mapper>

@@ -1,11 +1,8 @@
 package com.evian.sqct.service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-
+import com.evian.sqct.bean.util.WXHB;
+import com.evian.sqct.dao.IWxHBDao;
+import com.evian.sqct.util.XmlStringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,11 +10,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.evian.sqct.bean.util.WXHB;
-import com.evian.sqct.dao.IWxHBDao;
-import com.evian.sqct.util.WebConfig;
-import com.evian.sqct.util.XmlStringUtil;
-import com.evian.sqct.wxHB.WxPayHB;
+import java.util.*;
 
 @Service
 @Transactional(rollbackFor=Exception.class)
@@ -28,20 +21,17 @@ public class BaseWxHBManager {
 	@Autowired
 	@Qualifier("wxHBDao")
 	private IWxHBDao wxHBDao;
-	
+
 	@Autowired
-	WxPayHB wxph;
+	private WxPayService wxPayService;
 	
+
 	public 	String redpackUserRecordWechatSendLogOperat(String return_code,String return_msg,String result_code,String err_code,String err_code_des,String mch_billno,String mch_id,String wxappid,String re_openid,Integer total_amount,String send_listid) {
-		logger.info("[project:{}] [step:enter] [return_code:{}] [return_msg:{}] [result_code:{}] [err_code:{}] [err_code_des:{}] [mch_billno:{}] [mch_id:{}] [wxappid:{}] [re_openid:{}] [total_amount:{}] [send_listid:{}]",
-				new Object[] { WebConfig.projectName, return_code, return_msg, result_code, err_code,err_code_des,mch_billno,mch_id,wxappid,re_openid,total_amount,send_listid});
 		return wxHBDao.redpackUserRecordWechatSendLogOperat(return_code, return_msg, result_code, err_code, err_code_des, mch_billno, mch_id, wxappid, re_openid, total_amount, send_listid);
 	}
 	
 	public 	String redpackUserRecordWechatSendLogOperat(Map<String, Object> map) {
-		logger.info("[project:{}] [step:enter] [map:{}]",
-				new Object[] { WebConfig.projectName, map});
-		return wxHBDao.redpackUserRecordWechatSendLogOperat(map.get("return_code").toString(), 
+		return wxHBDao.redpackUserRecordWechatSendLogOperat(map.get("return_code").toString(),
 				map.get("return_msg")==null?"":map.get("return_msg").toString(), 
 				map.get("result_code").toString(), 
 				map.get("err_code")==null?"":map.get("err_code").toString(),
@@ -56,18 +46,18 @@ public class BaseWxHBManager {
 	
 	@Transactional(rollbackFor = Exception.class)
 	public List<Map<String, Object>> redpackSserRecordSendSelect(String openId){
-		logger.info("[project:{}] [step:enter] [openId:{}]",
-				new Object[] { WebConfig.projectName, openId});
 		return wxHBDao.redpackSserRecordSendSelect(openId);
 	}
 	
 	@Transactional(rollbackFor = Exception.class)
 	public List<Map<String, Object>> redpackSserRecordResendSelect(String openId,Integer recordId){
-		logger.info("[project:{}] [step:enter] [openId:{}] [recordId:{}]",
-				new Object[] { WebConfig.projectName, openId,recordId});
 		return wxHBDao.redpackSserRecordResendSelect(openId, recordId);
 	}
-	
+
+	/**
+	 * 微信红包查询
+	 * @throws Exception
+	 */
 	@Transactional(rollbackFor = Exception.class)
 	public void recordSelectForValid() throws Exception{
 		
@@ -89,8 +79,7 @@ public class BaseWxHBManager {
 			w.setWxappid(map.get("appId").toString());
 			w.setBill_type("MCHT"); // MCHT:通过商户订单号获取红包信息。
 			w.setAppKey(map.get("partnerKey").toString());
-			String pay = wxph.gethbinfo(w);
-			System.out.println(pay);
+			String pay = wxPayService.gethbinfo(w);
 			Map<String, Object> sendredpackMap = new HashMap<String, Object>();
 			try {
 				Integer validStatus = 0; 

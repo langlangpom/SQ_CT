@@ -1,9 +1,14 @@
 package com.evian.sqct.util;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.evian.sqct.bean.app.APPUpgrader;
+import com.evian.sqct.bean.app.APPUpgraderSelectObject;
+import com.evian.sqct.bean.util.JPushShangHuModel;
+import com.evian.sqct.bean.vendor.UrlManage;
+import com.evian.sqct.bean.vendor.VendorMainboardContainer;
+import com.evian.sqct.service.BaseVendorManager;
+import com.evian.sqct.service.JpushShangHuService;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,13 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.evian.sqct.bean.app.APPUpgrader;
-import com.evian.sqct.bean.app.APPUpgraderSelectObject;
-import com.evian.sqct.bean.vendor.UrlManage;
-import com.evian.sqct.bean.vendor.VendorMainboardContainer;
-import com.evian.sqct.service.BaseVendorManager;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @date   2018年12月22日 下午2:08:20
@@ -57,14 +60,14 @@ public class taskExamineVendorOperationCondition {
         JSONArray lineList = data.getJSONArray("lineList");
         
         List<VendorMainboardContainer> mainBoardList = vendorManager.selectAllMainboardContainer();
-        logger.info("[mainBoardList:{}]",mainBoardList);
+//        logger.info("[mainBoardList:{}]",mainBoardList);
         for (VendorMainboardContainer vmc : mainBoardList) {
         	
         	// 判断离线的售货机 是否已经重新修复  如果已经修复 那就删除发送的缓存
         	
         	
-        	// 该售货机已经激活														该售货机已经报损
-			if(vmc.getContainerStatus()!=null&&vmc.getContainerStatus().intValue()!=0&&vmc.getContainerStatus().intValue()!=3) {
+        	// 该售货机已经激活														该售货机已经报损		// 机子类型是售货柜
+			if(vmc.getContainerStatus()!=null&&vmc.getContainerStatus()!=0&&vmc.getContainerStatus()!=3&&vmc.getMainboardType()==0) {
 				/*String ret = sendList.get(vmc.getMainboardNo());
 				if(!StringUtils.isEmpty(ret)) {
 					continue;
@@ -112,9 +115,13 @@ public class taskExamineVendorOperationCondition {
 				logger.info(vmc.getMainboardNo()+" "+vmc.getMainboardId()+" 该货柜没有极光账号，无法发送！");
 				return;
 			}
-			String sendJpushMessage = vendorManager.sendJpushMessage((Integer)err_log.get("logId"), 2, "", vmc.getShopContainerName()+" "+vmc.getMainboardNo()+"号:服务端检测到异常离线！", 0, err_log.get("regeditId").toString(), "");
+//			String sendJpushMessage = vendorManager.sendJpushMessage((Integer)err_log.get("logId"), 2, "", vmc.getShopContainerName()+" "+vmc.getMainboardNo()+"号:服务端检测到异常离线！", 0, err_log.get("regeditId").toString(), "");
+			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			String dateString = formatter.format(new Date());
+			JPushShangHuModel model = new JPushShangHuModel((Integer)err_log.get("logId"),"",vmc.getShopContainerName()+" "+vmc.getMainboardNo()+"号:服务端检测到异常离线！",2,dateString,(Integer)err_log.get("sourceId"),(String)err_log.get("regeditId"),"","",(Integer)err_log.get("platformId"));
+			Map<String, Object> map = JpushShangHuService.pushMsg(model);
 			sendList.put(vmc.getMainboardNo(), "1");
-			logger.info(vmc.getMainboardNo()+"号货柜已离线，发送通知:{}",sendJpushMessage);
+			logger.info(vmc.getMainboardNo()+"号货柜已离线，发送通知:{}",map);
 		}
     }
     

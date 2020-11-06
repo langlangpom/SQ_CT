@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.evian.sqct.dao.mybatis.vendorDataSource.dao.IVendorMapperDao">
+
+    <resultMap id="BaseResultMap" type="com.evian.sqct.bean.vendor.SkipShuiqooProduct">
+        <result column="id" jdbcType="INTEGER" property="id" />
+        <result column="pid" jdbcType="INTEGER" property="pid" />
+        <result column="sort" jdbcType="INTEGER" property="sort" />
+        <result column="createTime" jdbcType="VARCHAR" property="createTime" />
+        <result column="creater" jdbcType="VARCHAR" property="creater" />
+    </resultMap>
+
+    <select id="selectEPaySubAccountByAccount" resultType="com.evian.sqct.bean.vendor.EPaySubAccount">
+        select subAccountId, eid, businessCode, contactName, identityCode, mobilePhone, contactEmail, subjectType, idDocType,owner, merchantShortname, servicePhone, salesScenesType, settlementId, settlementIdName, qualificationType,createTime, creator, operatStatus, applyment_id from e_pay_sub_account where creator= #{account}
+    </select>
+
+    <insert id="insertEPaySubAccount" parameterType="com.evian.sqct.bean.vendor.EPaySubAccount" useGeneratedKeys="true">
+        insert into e_pay_sub_account(eid, businessCode, contactName, identityCode, mobilePhone, contactEmail, subjectType,idDocType, owner, merchantShortname, servicePhone, salesScenesType, settlementId, settlementIdName, qualificationType, creator) values(#{eid}, #{businessCode}, #{contactName}, #{identityCode}, #{mobilePhone}, #{contactEmail}, #{subjectType}, #{idDocType}, #{owner}, #{merchantShortname}, #{servicePhone}, #{salesScenesType}, #{settlementId}, #{settlementIdName}, #{qualificationType}, #{creator})
+    </insert>
+
+    <insert id="insertEWechatServicepaySubaccountApply" parameterType="com.evian.sqct.bean.vendor.input.EWechatServicepaySubaccountApplyInputDTO" useGeneratedKeys="true">
+        insert into e_wechat_servicepay_subaccount_apply(accountId,eid,businessCode,contactName,mobilePhone,jsonContent,creator) values(#{accountId},#{eid},#{businessCode},#{contactName},#{mobilePhone},#{jsonContent},#{creator})
+    </insert>
+
+    <select id="selectEWechatServicepaySubaccountApplyByAccount" resultType="com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyRepDTO">
+        select accountId, eid, businessCode, contactName, mobilePhone, operatStatus, jsonContent, createTime, creator, applyment_id, applyment_state, sub_mchid, sign_url from e_wechat_servicepay_subaccount_apply where accountId=#{accountId}
+    </select>
+
+    <update id="updateEWechatServicepaySubaccountApply" parameterType="com.evian.sqct.bean.vendor.input.EWechatServicepaySubaccountApplyInputDTO">
+        update e_wechat_servicepay_subaccount_apply set eid=#{eid},contactName=#{contactName},mobilePhone=#{mobilePhone},jsonContent=#{jsonContent} where accountId=#{accountId}
+    </update>
+
+
+    <select id="selectEWechatServicepaySubaccountApplyProvince" resultType="com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyProvinceRepDTO">
+        select zipcode, country, province, city, district from e_wechat_servicepay_subaccount_apply_province where district is NULL and city is not NULL
+    </select>
+
+    <select id="selectEWechatServicepaySubaccountApplyBank" resultType="com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyBankRepDTO">
+        select CNAPSCode, bankName from e_wechat_servicepay_subaccount_apply_bank
+    </select>
+
+    <select id="selectEWechatServicepaySubaccountApplyBankname" resultType="com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyBanknameReqDTO">
+        select cft_bank_code,bankid,bankname from e_wechat_servicepay_subaccount_apply_bankname
+    </select>
+
+    <update id="updatesingleOrderStatus">
+        update single_order set orderStatus=#{orderStatus} where orderId=#{orderId}
+    </update>
+
+    <insert id="singleProductInsert" parameterType="com.evian.sqct.bean.vendor.SingleProduct">
+        insert into single_product(eid,productName,productPic,price,describe,accountId) values(#{eid},#{productName},#{productPic},#{price},#{describe},#{accountId})
+    </insert>
+
+    <update id="singleProductUpdate" parameterType="com.evian.sqct.bean.vendor.SingleProduct">
+        update single_product set productName=#{productName},productPic=#{productPic},price=#{price},describe=#{describe} where productId=#{productId} and accountId=#{accountId}
+    </update>
+
+    <select id="selectSingleProductsByEid" resultType="com.evian.sqct.bean.vendor.SingleProduct" >
+        select productId,eid,productName,productPic,createTime,price,describe,hitTheShelf,accountId from single_product where eid=#{eid} and del=0 order by createTime desc
+    </select>
+
+    <select id="selectSingleProductsByAccountId" resultType="com.evian.sqct.bean.vendor.SingleProduct" >
+        select productId,eid,productName,productPic,createTime,price,describe,hitTheShelf,accountId from single_product where accountId=#{accountId} and del=0 order by createTime desc
+    </select>
+
+    <select id="selectSingleProductsByPid" resultType="com.evian.sqct.bean.vendor.SingleProduct" >
+        select productId,eid,productName,productPic,createTime,price,describe,hitTheShelf,accountId from single_product where productId=#{productId}
+    </select>
+
+    <update id="updateSingleProductHitTheShelf">
+        update single_product set hitTheShelf=#{hitTheShelf} where productId=#{productId}
+    </update>
+
+    <update id="deleteSingleProduct">
+        update single_product set del=1 where productId=#{productId}
+    </update>
+
+    <insert id="insertVendorProduct" parameterType="com.evian.sqct.bean.vendor.input.AddVendorProductReqDTO">
+        insert vendor_product( eid, productName, price, originalPrice, picture, imageText, isLine, createUser, synopsis, isCash, isLimit, shortName, isPrize, sortId, accountId)
+         values( #{eid}, #{productName}, #{price}, #{originalPrice}, #{picture}, #{imageText}, #{isLine}, #{createUser}, #{synopsis}, #{isCash}, #{isLimit}, #{shortName}, #{isPrize}, #{sortId}, #{accountId});
+    </insert>
+
+    <update id="delVendorProduct">
+        update vendor_product set isDel=1 where id=#{id}
+    </update>
+
+    <update id="updateVendorProduct" parameterType="com.evian.sqct.bean.vendor.VendorProduct">
+        update vendor_product set eid=#{eid}, productName=#{productName}, price=#{price}, originalPrice=#{originalPrice}, picture=#{picture}, imageText=#{imageText}, isLine=#{isLine}, productCode=#{productCode}, synopsis=#{synopsis}, isCash=#{isCash}, isLimit=#{isLimit}, shortName=#{shortName}, isPrize=#{isPrize}, sortId=#{sortId}, accountId=#{accountId} where id=#{id}
+    </update>
+
+    <select id="selectVendorProductByAccountId" resultType="com.evian.sqct.bean.vendor.VendorProduct">
+        select id, eid, productName, price, originalPrice, picture, imageText, isLine, createTime, createUser, productCode, isDel, synopsis, isCash, isLimit, shortName, isPrize, sortId, accountId from vendor_product where accountId=#{accountId} and isDel=0 order by sortId
+    </select>
+
+    <select id="selectVendorProductById" resultType="com.evian.sqct.bean.vendor.VendorProduct">
+        select id, eid, productName, price, originalPrice, picture, imageText, isLine, createTime, createUser, productCode, isDel, synopsis, isCash, isLimit, shortName, isPrize, sortId, accountId from vendor_product where id=#{id}
+    </select>
+
+    <insert id="insertVendorAppMerchantAccountProduct" parameterType="com.evian.sqct.bean.vendor.VendorAppMerchantAccountProduct">
+        insert vendor_appMerchant_account_product( accountId, pid, sortId) values( #{accountId}, #{pid}, #{sortId});
+    </insert>
+
+    <update id="updateVendorAppMerchantAccountProduct" parameterType="com.evian.sqct.bean.vendor.VendorAppMerchantAccountProduct">
+        update vendor_appMerchant_account_product set sortId=#{sortId} where accountId=#{accountId} and pid=#{pid};
+    </update>
+
+    <delete id="deleteVendorAppMerchantAccountProduct" parameterType="com.evian.sqct.bean.vendor.VendorAppMerchantAccountProduct">
+        delete from vendor_appMerchant_account_product where accountId=#{accountId} and pid=#{pid};
+    </delete>
+
+    <select id="selectVendorAppMerchantAccountProduct" resultType="com.evian.sqct.bean.vendor.VendorAppMerchantAccountProduct">
+        select accountId, pid, sortId from vendor_appMerchant_account_product where accountId=#{accountId} and pid=#{pid};
+    </select>
+
+</mapper>

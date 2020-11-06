@@ -4,22 +4,30 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.evian.sqct.api.BaseAction;
+import com.evian.sqct.bean.baseBean.PagingPojo;
 import com.evian.sqct.bean.vendor.*;
+import com.evian.sqct.bean.vendor.input.*;
+import com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyBankRepDTO;
+import com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyProvinceRepDTO;
+import com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyRepDTO;
+import com.evian.sqct.exception.BaseRuntimeException;
+import com.evian.sqct.exception.ResultException;
+import com.evian.sqct.response.ResultCode;
+import com.evian.sqct.response.ResultVO;
 import com.evian.sqct.service.BaseVendorManager;
 import com.evian.sqct.util.CallBackPar;
-import com.evian.sqct.util.Constants;
-import com.evian.sqct.util.DES.WebConfig;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import javax.validation.Valid;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * @date   2018年9月30日 上午11:02:12
@@ -41,21 +49,10 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("getNowDbName.action")
 	public Map<String, Object> getNowDbName() throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			String nowDbName = baseVendorManager.getNowDbName();
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("success", nowDbName);
-			parMap.put("data", resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		String nowDbName = baseVendorManager.getNowDbName();
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("success", nowDbName);
+		return resultMap;
 	}
 	
 	/**
@@ -63,34 +60,15 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("saveVerndorContainer.action")
-	public Map<String, Object> saveVerndorContainer(Integer vmId,Integer bmId,Integer doorNumber,Integer vmIndex,String createdUser) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO saveVerndorContainer(Integer vmId, Integer bmId, Integer doorNumber, Integer vmIndex, String createdUser) {
 		if(vmId==null||bmId==null||doorNumber==null||vmIndex==null||createdUser==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			String verndorContainerADD = baseVendorManager.verndorContainerADD(vmId, bmId, doorNumber, vmIndex, createdUser);
-			if(!"1".equals(verndorContainerADD)){
-				int code = 150;
-				String message = verndorContainerADD;
-				logger.info("[project:{}] [step:enter] [code:{}]", new Object[] {
-						WebConfig.projectName, code });
-				parMap.put("code", code);
-				parMap.put("message", message);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		String verndorContainerADD = baseVendorManager.verndorContainerADD(vmId, bmId, doorNumber, vmIndex, createdUser);
+		if(!"1".equals(verndorContainerADD)){
+			throw new ResultException(verndorContainerADD);
 		}
-		return parMap;
+		return new ResultVO();
 	}
 	
 	/**
@@ -98,11 +76,8 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findContainer.action")
-	public Map<String, Object> findContainer() {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		
-		
-		return parMap;
+	public ResultVO findContainer() {
+		return new ResultVO();
 	}
 	
 	/**
@@ -110,29 +85,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findDoorAndProuct.action")
-	public Map<String, Object> findDoorAndProuct(Integer mainboardId,Integer eid,Integer doorIndex,Integer classId,String beginTime,String endTime,String account,String containerCode,Integer doorReplenishmentDays,Integer doorStatus,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findDoorAndProuct(Integer mainboardId,Integer eid,Integer doorIndex,Integer classId,String beginTime,String endTime,String account,String containerCode,Integer doorReplenishmentDays,Integer doorStatus,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
 		if(mainboardId==null||eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<VendorDoor> findDoorAndProuct = baseVendorManager.findDoorAndProuct(mainboardId, eid,doorIndex, classId, beginTime, endTime, account, containerCode, doorReplenishmentDays, doorStatus, PageIndex, PageSize, IsSelectAll);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("vendorDoorProucts", findDoorAndProuct);
-			parMap.put("data", resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<VendorDoor> findDoorAndProuct = baseVendorManager.findDoorAndProuct(mainboardId, eid,doorIndex, classId, beginTime, endTime, account, containerCode, doorReplenishmentDays, doorStatus, PageIndex, PageSize, IsSelectAll);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("vendorDoorProucts", findDoorAndProuct);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -142,40 +102,20 @@ public class VendorAction extends BaseAction {
 	 */
 	@SuppressWarnings("deprecation")
 	@RequestMapping("mainboardBindContainer.action")
-	public Map<String, Object> mainboardBindContainer(String mainboardNo,String containerCode,Integer eid) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO mainboardBindContainer(String mainboardNo,String containerCode,Integer eid) {
 		if(mainboardNo==null||eid==null||containerCode==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Map<String, Object> mainboardBindContainerMap = baseVendorManager.mainboardBindContainer(mainboardNo, containerCode, eid);
-			logger.info("mainboardBindContainerMap : "+mainboardBindContainerMap);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			if("1".equals(mainboardBindContainerMap.get("tag"))){
-				resultMap.put("doorIndex", mainboardBindContainerMap.get("doorIndex"));
-				resultMap.put("bmId", mainboardBindContainerMap.get("bmId"));
-				parMap.put("data", resultMap);
-			}else{
-				int code = 150;
-				String message = (String) mainboardBindContainerMap.get("tag");
-				logger.info("[project:{}] [step:enter] [code:{}]", new Object[] {
-						WebConfig.projectName, code });
-				parMap.put("code", code);
-				parMap.put("message", message);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		Map<String, Object> mainboardBindContainerMap = baseVendorManager.mainboardBindContainer(mainboardNo, containerCode, eid);
+		logger.info("mainboardBindContainerMap : "+mainboardBindContainerMap);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		if("1".equals(mainboardBindContainerMap.get("tag"))){
+			resultMap.put("doorIndex", mainboardBindContainerMap.get("doorIndex"));
+			resultMap.put("bmId", mainboardBindContainerMap.get("bmId"));
+			return new ResultVO(resultMap);
+		}else{
+			throw new ResultException((String) mainboardBindContainerMap.get("tag"));
 		}
-		return parMap;
 	}
 	
 	/**
@@ -184,29 +124,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("validateIsSuccess.action")
-	public Map<String, Object> validateIsSuccess(Integer bmId,Integer doorIndex) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO validateIsSuccess(Integer bmId,Integer doorIndex) {
 		if(bmId==null||doorIndex==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {	
-			Boolean isSuccess = baseVendorManager.findmainboardInstructByBmIdByDoorIndex(bmId, doorIndex);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("isSuccess", isSuccess);
-			parMap.put("data", resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		Boolean isSuccess = baseVendorManager.findmainboardInstructByBmIdByDoorIndex(bmId, doorIndex);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("isSuccess", isSuccess);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -215,36 +140,15 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("verificationVendorDoor.action")
-	public Map<String, Object> verificationVendorDoor(Integer mainboardId,Integer doorIndex,Integer portNo,String alias,Integer doorStatus,String breakDownRemark) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO verificationVendorDoor(Integer mainboardId,Integer doorIndex,Integer portNo,String alias,Integer doorStatus,String breakDownRemark) {
 		if(mainboardId==null||doorIndex==null||alias==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		
-		try {
-			String verificationVendorDoor = baseVendorManager.verificationVendorDoor(mainboardId, doorIndex, portNo,alias,doorStatus,breakDownRemark);
-			if(!"1".equals(verificationVendorDoor)){
-				int code = 150;
-				String message = verificationVendorDoor;
-				logger.info("[project:{}] [step:enter] [code:{}]", new Object[] {
-						WebConfig.projectName, code });
-				parMap.put("code", code);
-				parMap.put("message", message);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		String verificationVendorDoor = baseVendorManager.verificationVendorDoor(mainboardId, doorIndex, portNo,alias,doorStatus,breakDownRemark);
+		if(!"1".equals(verificationVendorDoor)){
+			throw new ResultException(verificationVendorDoor);
 		}
-		
-		return parMap;
+		return new ResultVO();
 	}
 	
 	/**
@@ -253,29 +157,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorManageSelect.action")
-	public Map<String, Object> vendorManageSelect(Integer shopId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorManageSelect(Integer shopId) {
 		if(shopId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			List<VendorShopContainer> vendorManage = baseVendorManager.VendorManage(shopId);
-			resultMap.put("ShopContainers", vendorManage);
-			parMap.put("data", resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<VendorShopContainer> vendorManage = baseVendorManager.VendorManage(shopId);
+		resultMap.put("ShopContainers", vendorManage);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -284,31 +173,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("AppCustomerMainboardSelect.action")
-	public Map<String, Object> AppCustomerMainboardSelect(Integer eid,Integer shopId,Integer containerStatus,Integer accountId,String mainboardNoMD5) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO AppCustomerMainboardSelect(Integer eid,Integer shopId,Integer containerStatus,Integer accountId,String mainboardNoMD5,Integer communityId) {
 		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			
-			List<Map<String, Object>> appCustomerMainboardSelect = baseVendorManager.AppCustomerMainboardSelect(eid, shopId, containerStatus, accountId, mainboardNoMD5);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("customers", appCustomerMainboardSelect);
-			parMap.put("data", resultMap);
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> appCustomerMainboardSelect = baseVendorManager.AppCustomerMainboardSelect(eid, shopId, containerStatus, accountId, mainboardNoMD5,communityId);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("customers", appCustomerMainboardSelect);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -317,37 +189,16 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("doorReplenishment.action")
-	public Map<String, Object> doorReplenishment(Integer eid,Integer mainboardId,Integer doorIndex,Integer productId,String account,Integer operatType,Integer wxId) {
+	public ResultVO doorReplenishment(Integer eid,Integer mainboardId,Integer doorIndex,Integer productId,String account,Integer typeId, String typeName,Integer wxId,String location) {
 		Map<String, Object> parMap = CallBackPar.getParMap();
-		if(eid==null||mainboardId==null||doorIndex==null||productId==null||operatType==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+		if(eid==null||mainboardId==null||doorIndex==null||productId==null||typeId==null||typeName==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			
-			String doorReplenishment = baseVendorManager.doorReplenishment(eid, mainboardId, doorIndex, productId,account,operatType,wxId);
-			
-			if(!"1".equals(doorReplenishment)){
-				int code = 150;
-				String message = doorReplenishment;
-				parMap.put("code", code);
-				parMap.put("message", message);
-				logger.info("[project:{}] [step:enter] [code:{}]", new Object[] {
-						WebConfig.projectName, code });
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		String doorReplenishment = baseVendorManager.doorReplenishment(eid, mainboardId, doorIndex, productId,account,typeId,typeName,wxId,location);
+		if(!"1".equals(doorReplenishment)){
+			throw new ResultException(doorReplenishment);
 		}
-		
-		return parMap;
+		return new ResultVO();
 	}
 	
 	/**
@@ -356,32 +207,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorProductSelect.action")
-	public Map<String, Object> vendorProductSelect(Integer eid,String productName,Boolean isLine) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorProductSelect(Integer eid,String productName,Boolean isLine) {
 		if(eid==null||productName==null||isLine==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		
-		try {
-			
-			List<Map<String, Object>> vendorProductSelect = baseVendorManager.vendorProductSelect(productName, eid, isLine);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("products", vendorProductSelect);
-			parMap.put("data", resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		List<Map<String, Object>> vendorProductSelect = baseVendorManager.vendorProductSelect(productName, eid, isLine);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("products", vendorProductSelect);
+		return new ResultVO(resultMap);
 	}
 
 	/**
@@ -390,31 +223,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorDoorProductStatistics.action")
-	public Map<String, Object> vendorDoorProductStatistics(Integer accountId,Integer productState,Boolean isAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorDoorProductStatistics(Integer accountId,Integer productState,Boolean isAll) {
 		if(accountId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		
-		try {
-			List<Map<String, Object>> vendorProductSelect = baseVendorManager.vendorDoorProductStatistics(accountId, productState, isAll);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("statistics", vendorProductSelect);
-			parMap.put("data", resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		List<Map<String, Object>> vendorProductSelect = baseVendorManager.vendorDoorProductStatistics(accountId, productState, isAll);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("statistics", vendorProductSelect);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -423,32 +239,13 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findDoorAndProuct_v2.action")
-	public Map<String, Object> findDoorAndProuct_v2(Integer eid,Integer PageIndex,Integer PageSize,Integer mainboardId,Integer replenishmentClassId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
-		}
-		
-		try {
-			Map<String, Object> findDoorAndProuct = baseVendorManager.findDoorAndProuct_v2(mainboardId,eid,replenishmentClassId, PageIndex,PageSize);
-			/*Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("vendorDoorProucts", findDoorAndProuct.get("vendorDoorProucts"));
-			resultMap.put("count", findDoorAndProuct.get("count"));*/
-			parMap.put("data", findDoorAndProuct);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+	public ResultVO findDoorAndProuct_v2(@Valid ProcBackstageVendorProductSelectReqDTO dto) {
+		Map<String, Object> findDoorAndProuct = baseVendorManager.findDoorAndProuct_v2(dto);
+		/*Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("vendorDoorProucts", findDoorAndProuct.get("vendorDoorProucts"));
+		resultMap.put("count", findDoorAndProuct.get("count"));*/
+
+		return new ResultVO(findDoorAndProuct);
 	}
 	
 	/**
@@ -459,29 +256,13 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("doorInitValid.action")
-	public Map<String, Object> doorInitValid(Integer mainboardId,Integer eid,Integer doorIndex,Integer portNo,String mainboardNo) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO doorInitValid(Integer mainboardId,Integer eid,Integer doorIndex,Integer portNo,String mainboardNo) {
 		if(eid==null||mainboardId==null||doorIndex==null||portNo==null||mainboardNo==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			String doorInitValid = baseVendorManager.doorInitValid(mainboardId,mainboardNo,eid, doorIndex, portNo);
-			JSONObject parseObject = JSON.parseObject(doorInitValid);
-			parMap.put("code", parseObject.getIntValue("code"));
-			parMap.put("message", parseObject.getString("message"));
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		String doorInitValid = baseVendorManager.doorInitValid(mainboardId,mainboardNo,eid, doorIndex, portNo);
+		JSONObject parseObject = JSON.parseObject(doorInitValid);
+		return new ResultVO(parseObject.getIntValue("code"),parseObject.getString("message"));
 	}
 	
 	/**
@@ -492,29 +273,13 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("batchOpenEmptyDoor.action")
-	public Map<String, Object> batchOpenEmptyDoor(Integer mainboardId,Integer eid,String mainboardNo) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO batchOpenEmptyDoor(Integer mainboardId,Integer eid,String mainboardNo) {
 		if(eid==null||mainboardId==null||mainboardNo==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			String batchOpenEmptyDoor = baseVendorManager.batchOpenEmptyDoor(mainboardId,mainboardNo, eid);
-			JSONObject parseObject = JSON.parseObject(batchOpenEmptyDoor);
-			parMap.put("code", parseObject.getIntValue("code"));
-			parMap.put("message", parseObject.getString("message"));
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		String batchOpenEmptyDoor = baseVendorManager.batchOpenEmptyDoor(mainboardId,mainboardNo, eid);
+		JSONObject parseObject = JSON.parseObject(batchOpenEmptyDoor);
+		return new ResultVO(parseObject.getIntValue("code"),parseObject.getString("message"));
 	}
 	
 	
@@ -526,30 +291,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("mainboardLine.action")
-	public Map<String, Object> mainboardLine(Integer mainboardId,String mainboardNo) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO mainboardLine(Integer mainboardId,String mainboardNo) {
 		if(mainboardId==null||mainboardNo==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			
-			String mainboardLine = baseVendorManager.mainboardLine(mainboardId, mainboardNo);
-			JSONObject parseObject = JSON.parseObject(mainboardLine);
-			parMap.put("code", parseObject.getIntValue("code"));
-			parMap.put("message", parseObject.getString("message"));
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+
+		String mainboardLine = baseVendorManager.mainboardLine(mainboardId, mainboardNo);
+		JSONObject parseObject = JSON.parseObject(mainboardLine);
+		return new ResultVO(parseObject.getIntValue("code"),parseObject.getString("message"));
 	}
 	
 	
@@ -562,30 +311,16 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorAppCustomerConfirmReceipt.action")
-	public Map<String, Object> vendorAppCustomerConfirmReceipt(Integer eid,String guidStr) {
+	public ResultVO vendorAppCustomerConfirmReceipt(Integer eid,String guidStr) {
 		Map<String, Object> parMap = CallBackPar.getParMap();
 		if(eid==null||guidStr==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			String result = baseVendorManager.vendorAppCustomerConfirmReceipt(eid, guidStr);
-			if(!"1".equals(result)){
-				parMap.put("code", 150);
-				parMap.put("message", result);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		String result = baseVendorManager.vendorAppCustomerConfirmReceipt(eid, guidStr);
+		if(!"1".equals(result)){
+			throw new ResultException(result);
 		}
-		return parMap;
+		return new ResultVO();
 	}
 	
 	/**
@@ -597,29 +332,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorAppCustomerDoorProductStatistics.action")
-	public Map<String, Object> vendorAppCustomerDoorProductStatistics(Integer eid,Integer accountId,Boolean isAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorAppCustomerDoorProductStatistics(Integer eid,Integer accountId,Boolean isAll) {
 		if(eid==null||isAll==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Map<String, Object>> vendorAppCustomerDoorProductStatistics = baseVendorManager.vendorAppCustomerDoorProductStatistics(eid, accountId,isAll);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("doorProductStatistics", vendorAppCustomerDoorProductStatistics);
-			parMap.put("data", resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> vendorAppCustomerDoorProductStatistics = baseVendorManager.vendorAppCustomerDoorProductStatistics(eid, accountId,isAll);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("doorProductStatistics", vendorAppCustomerDoorProductStatistics);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -630,29 +350,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorAppCustomerDoorstatistics.action")
-	public Map<String, Object> vendorAppCustomerDoorstatistics(Integer eid,Integer accountId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorAppCustomerDoorstatistics(Integer eid,Integer accountId,Integer shopId) {
 		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Map<String, Object>> vendorAppCustomerDoorstatistics = baseVendorManager.vendorAppCustomerDoorstatistics(eid, accountId);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("vendorAppCustomerDoorstatistics", vendorAppCustomerDoorstatistics);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> vendorAppCustomerDoorstatistics = baseVendorManager.vendorAppCustomerDoorstatistics(eid, accountId,shopId);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("vendorAppCustomerDoorstatistics", vendorAppCustomerDoorstatistics);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -663,31 +368,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorAppCustomerMainboardContainerstatistics.action")
-	public Map<String, Object> vendorAppCustomerMainboardContainerstatistics(Integer eid,Integer accountId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorAppCustomerMainboardContainerstatistics(Integer eid,Integer accountId) {
 		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		
-		try {
-			List<Map<String, Object>> vendorAppCustomerMainboardContainerstatistics = baseVendorManager.vendorAppCustomerMainboardContainerstatistics(eid, accountId);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("vendorAppCustomerMainboardContainerstatistics", vendorAppCustomerMainboardContainerstatistics);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		List<Map<String, Object>> vendorAppCustomerMainboardContainerstatistics = baseVendorManager.vendorAppCustomerMainboardContainerstatistics(eid, accountId);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("vendorAppCustomerMainboardContainerstatistics", vendorAppCustomerMainboardContainerstatistics);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -699,31 +387,16 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorAppCustomerMainboardContainerstatus.action")
-	public Map<String, Object> vendorAppCustomerMainboardContainerstatus(Integer mainboardId,Integer accountId,Integer containerStatus,String remark) {
+	public ResultVO vendorAppCustomerMainboardContainerstatus(Integer mainboardId,Integer accountId,Integer containerStatus,String remark) {
 		Map<String, Object> parMap = CallBackPar.getParMap();
 		if(mainboardId==null||accountId==null||containerStatus==null||remark==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		
-		try {
-			String result = baseVendorManager.vendorAppCustomerMainboardContainerstatus(mainboardId, accountId, containerStatus, remark);
-			if(!"1".equals(result)){
-				setCode(parMap, 150);
-				setMessage(parMap, result);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		String result = baseVendorManager.vendorAppCustomerMainboardContainerstatus(mainboardId, accountId, containerStatus, remark);
+		if(!"1".equals(result)){
+			throw new ResultException(result);
 		}
-		return parMap;
+		return new ResultVO();
 	}
 	
 	/**
@@ -735,30 +408,15 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorAppCustomerMainboardContainerAddressEdit.action")
-	public Map<String, Object> vendorAppCustomerMainboardContainerAddressEdit(Integer mainboardId,Integer accountId,String shopContainerName,String location,String containerAddress,Integer communityId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorAppCustomerMainboardContainerAddressEdit(Integer mainboardId,Integer accountId,String shopContainerName,String location,String containerAddress,Integer communityId) {
 		if(mainboardId==null||accountId==null||shopContainerName==null||location==null||containerAddress==null||communityId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			String result = baseVendorManager.vendorAppCustomerMainboardContainerAddressEdit(mainboardId, accountId, shopContainerName, location, containerAddress,communityId);
-			if(!"1".equals(result)){
-				setCode(parMap, 150);
-				setMessage(parMap, result);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		String result = baseVendorManager.vendorAppCustomerMainboardContainerAddressEdit(mainboardId, accountId, shopContainerName, location, containerAddress,communityId);
+		if(!"1".equals(result)){
+			throw new ResultException(result);
 		}
-		return parMap;
+		return new ResultVO();
 	}
 	
 	/**
@@ -769,29 +427,10 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorDoorStatistics.action")
-	public Map<String, Object> vendorDoorStatistics(Integer eid,Integer accountId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
-		}
-		try {
-			List<Map<String, Object>> vendorAppCustomerMainboardContainerDoorStatistics = baseVendorManager.vendorAppCustomerMainboardContainerDoorStatistics(eid, accountId);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("vendorDoorStatistics", vendorAppCustomerMainboardContainerDoorStatistics);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+	public Map<String,Object> vendorDoorStatistics(@Valid VendorDoorStatisticsDTO dto) {
+
+		Map<String, Object> vendorAppCustomerMainboardContainerDoorStatistics = baseVendorManager.vendorAppCustomerMainboardContainerDoorStatistics(dto);
+		return vendorAppCustomerMainboardContainerDoorStatistics;
 	}
 	
 	/**
@@ -802,20 +441,8 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorSelectOrder.action")
-	public Map<String, Object> vendorSelectOrder(String beginTime,String endTime,String orderNo,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,String nickName,Integer doorIndex,Boolean isTest,String openId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			Map<String, Object> vendorSelectOrder = baseVendorManager.vendorSelectOrder(beginTime, endTime, orderNo, eid, mainboardNo, orderStatus, dataSourse, isPay, productName, shopName,nickName,doorIndex,isTest,openId, PageIndex, PageSize, IsSelectAll);
-			setData(parMap, vendorSelectOrder);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+	public Map<String, Object> vendorSelectOrder(String beginTime,String endTime,String orderNo,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,String nickName,Integer doorIndex,Integer accountId,Boolean isTest,String openId,Integer mainboardType,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
+		return baseVendorManager.vendorSelectOrder(beginTime, endTime, orderNo, eid, mainboardNo, orderStatus, dataSourse, isPay, productName, shopName,nickName,doorIndex,accountId,isTest,openId,mainboardType, PageIndex, PageSize, IsSelectAll);
 	}
 	
 	/**
@@ -827,32 +454,15 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorGisCommunityOperat.action")
-	public Map<String, Object> vendorGisCommunityOperat(String tag,Integer communityId,Integer districtId,String location,String communityName,Integer eid,Integer accountId,String account,String remark) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorGisCommunityOperat(String tag,Integer communityId,Integer districtId,String location,String communityName,Integer eid,Integer accountId,String account,String remark) {
 		if(tag==null||districtId==null||location==null||communityName==null||eid==null||accountId==null||account==null||(!tag.equals("ADD")&&communityId==null)) {
-			
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		
-		try {
-			String result = baseVendorManager.vendorGisCommunityOperat(tag, communityId,districtId,location, communityName, eid, accountId, account, remark);
-			if(!"1".equals(result)){
-				parMap.put("code", 150);
-				parMap.put("message", result);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		String result = baseVendorManager.vendorGisCommunityOperat(tag, communityId,districtId,location, communityName, eid, accountId, account, remark);
+		if(!"1".equals(result)){
+			throw new ResultException(result);
 		}
-		return parMap;
+		return new ResultVO();
 	}
 	
 	/**
@@ -862,27 +472,12 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findArea.action")
-	public Map<String, Object> findArea(Integer eid,Integer cityId,Integer districtId,Boolean isAudit,Integer PageIndex,Integer PageSize,Boolean IsSelectAll,Integer provinceId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findArea(Integer eid,Integer cityId,Integer districtId,Boolean isAudit,Integer PageIndex,Integer PageSize,Boolean IsSelectAll,Integer provinceId) {
 		if(districtId==null||eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Map<String, Object> findArea = baseVendorManager.findArea(eid, cityId, districtId, isAudit, PageIndex, PageSize, IsSelectAll, provinceId);
-			parMap.put("data", findArea);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		Map<String, Object> findArea = baseVendorManager.findArea(eid, cityId, districtId, isAudit, PageIndex, PageSize, IsSelectAll, provinceId);
+		return new ResultVO(findArea);
 	}
 	
 	/**
@@ -892,27 +487,12 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findArea_v2.action")
-	public Map<String, Object> findArea_v2(Integer eid,Integer cityId,Integer districtId,Boolean isAudit,Integer PageIndex,Integer PageSize,Boolean IsSelectAll,Integer provinceId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findArea_v2(Integer eid,Integer cityId,Integer districtId,Boolean isAudit,Integer PageIndex,Integer PageSize,Boolean IsSelectAll,Integer provinceId) {
 		if(districtId==null||eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Map<String, Object> findArea = baseVendorManager.findAreaByDistrictId(provinceId, cityId, districtId, isAudit, PageIndex, PageSize, IsSelectAll);
-			parMap.put("data", findArea);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		Map<String, Object> findArea = baseVendorManager.findAreaByDistrictId(provinceId, cityId, districtId, isAudit, PageIndex, PageSize, IsSelectAll);
+		return new ResultVO(findArea);
 	}
 	
 
@@ -924,21 +504,10 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("findAdLedPrices.action")
 	public Map<String, Object> findAdLedPrices() {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			List<AdLedPrice> findAdLedPrices = baseVendorManager.findAdLedPrices();
-			Map<String, Object> map = new HashMap<String, Object>();
-			map.put("adLedPrices", findAdLedPrices);
-			parMap.put("data", map);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<AdLedPrice> findAdLedPrices = baseVendorManager.findAdLedPrices();
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("adLedPrices", findAdLedPrices);
+		return map;
 	}
 	
 	/**
@@ -948,31 +517,15 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorAdLedOrderSave.action")
-	public Map<String, Object> vendorAdLedOrderSave(Integer clientId,String adContent,String beginDate,Integer dayQuantity,String codeNo,Double orderMoney,String communityIds) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorAdLedOrderSave(Integer clientId,String adContent,String beginDate,Integer dayQuantity,String codeNo,Double orderMoney,String communityIds) {
 		if(clientId==null||adContent==null||beginDate==null||dayQuantity==null||orderMoney==null||communityIds==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Map<String, Object> findArea = baseVendorManager.vendorAdLedOrderSave(clientId, adContent, beginDate, dayQuantity,codeNo, orderMoney, communityIds);
-			if(!"1".equals(findArea.get("tag"))){
-				parMap.put("code", 150);
-				parMap.put("message", findArea.get("tag"));
-			}
-			parMap.put("data", findArea);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		Map<String, Object> findArea = baseVendorManager.vendorAdLedOrderSave(clientId, adContent, beginDate, dayQuantity,codeNo, orderMoney, communityIds);
+		if(!"1".equals(findArea.get("tag"))){
+			throw new ResultException((String) findArea.get("tag"));
 		}
-		return parMap;
+		return new ResultVO(findArea);
 	}
 	
 
@@ -985,21 +538,10 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("vendorAdLedOrderSelect.action")
 	public Map<String, Object> vendorAdLedOrderSelect(String beginTime,String endTime,Integer orderId,Boolean isPay,Integer orderStatus,String orderNo,String account,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			List<Map<String, Object>> vendorAdLedOrderSelect = baseVendorManager.vendorAdLedOrderSelect(beginTime, endTime, orderId, isPay, orderStatus, orderNo, account, PageIndex, PageSize, IsSelectAll);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("vendorAdLedOrders", vendorAdLedOrderSelect);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> vendorAdLedOrderSelect = baseVendorManager.vendorAdLedOrderSelect(beginTime, endTime, orderId, isPay, orderStatus, orderNo, account, PageIndex, PageSize, IsSelectAll);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("vendorAdLedOrders", vendorAdLedOrderSelect);
+		return resultMap;
 	}
 	
 	/**
@@ -1011,21 +553,10 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("vendorCodeAppCustomerSelect.action")
 	public Map<String, Object> vendorCodeAppCustomerSelect(Integer eid,Integer clientId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			List<Map<String, Object>> vendorCodeAppCustomerSelect = baseVendorManager.vendorCodeAppCustomerSelect(eid, clientId);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("vendorCodeAppCustomers", vendorCodeAppCustomerSelect);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> vendorCodeAppCustomerSelect = baseVendorManager.vendorCodeAppCustomerSelect(eid, clientId);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("vendorCodeAppCustomers", vendorCodeAppCustomerSelect);
+		return resultMap;
 	}
 	
 	/**
@@ -1036,29 +567,15 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("selectMainboardBymainboardNo.action")
-	public Map<String, Object> selectMainboardBymainboardNo(String mainboardNo) {
+	public ResultVO selectMainboardBymainboardNo(String mainboardNo) {
 		Map<String, Object> parMap = CallBackPar.getParMap();
 		if(mainboardNo==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<VendorMainboard2> selectMainboardBymainboardNo = baseVendorManager.selectMainboardBymainboardNo(mainboardNo);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("nainboard", selectMainboardBymainboardNo);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<VendorMainboard2> selectMainboardBymainboardNo = baseVendorManager.selectMainboardBymainboardNo(mainboardNo);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("nainboard", selectMainboardBymainboardNo);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -1068,29 +585,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("hourBalanceStatistics.action")
-	public Map<String, Object> hourBalanceStatistics(Integer searchType,String beginTime,String endTime,Integer eid,Integer productId,Integer mainboardId,Integer accountId,Integer communityId){
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO hourBalanceStatistics(Integer searchType,String beginTime,String endTime,Integer eid,Integer productId,Integer mainboardId,Integer accountId,Integer communityId){
 		if(searchType==null||beginTime==null||endTime==null||eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Map<String, Object>> balanceProductidMainboardidAccountidCommunityidByhourSelect = baseVendorManager.balanceProductidMainboardidAccountidCommunityidByhourSelect(searchType, beginTime, endTime, eid, productId, mainboardId, accountId, communityId);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("hourBalanceStatistics", balanceProductidMainboardidAccountidCommunityidByhourSelect);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> balanceProductidMainboardidAccountidCommunityidByhourSelect = baseVendorManager.balanceProductidMainboardidAccountidCommunityidByhourSelect(searchType, beginTime, endTime, eid, productId, mainboardId, accountId, communityId);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("hourBalanceStatistics", balanceProductidMainboardidAccountidCommunityidByhourSelect);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -1100,29 +602,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorErrorLogSelect.action")
-	public Map<String, Object> vendorErrorLogSelect(String beginTime,String endTime,Integer eid,Integer dataSource,String containerCode,Boolean isSend,Integer accountId,String nickName,String eName,Boolean isDispose,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorErrorLogSelect(String beginTime,String endTime,Integer eid,Integer dataSource,String containerCode,Boolean isSend,Integer accountId,String nickName,String eName,Boolean isDispose,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
 		if(accountId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Map<String, Object>> vendorErrorLogSelect = baseVendorManager.vendorErrorLogSelect(beginTime, endTime, eid, dataSource, containerCode, isSend, accountId, nickName, eName,isDispose, PageIndex, PageSize, IsSelectAll);
-			Map<String, Object> map = new HashMap<String, Object>();
-			map.put("vendorErrorLogs", vendorErrorLogSelect);
-			parMap.put("data", map);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> vendorErrorLogSelect = baseVendorManager.vendorErrorLogSelect(beginTime, endTime, eid, dataSource, containerCode, isSend, accountId, nickName, eName,isDispose, PageIndex, PageSize, IsSelectAll);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("vendorErrorLogs", vendorErrorLogSelect);
+		return new ResultVO(map);
 	}
 	
 	/**
@@ -1132,34 +619,16 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("updateErrResult.action")
-	public Map<String, Object> updateErrResult(Integer logId,Boolean isDispose,String disposeMsg) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO updateErrResult(Integer logId,Boolean isDispose,String disposeMsg) {
 		if(logId==null||isDispose==null||disposeMsg==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Integer updateErrResult = baseVendorManager.updateErrResult(logId, isDispose, disposeMsg);
-			if(updateErrResult.intValue()!=1) {
-				// 修改失败
-				int code = Constants.CODE_ERROR_UPDATE;
-				String message = Constants.getCodeValue(code);
-				parMap.put("code", code);
-				parMap.put("message", message);
-			}
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		Integer updateErrResult = baseVendorManager.updateErrResult(logId, isDispose, disposeMsg);
+		if(updateErrResult.intValue()!=1) {
+			// 修改失败
+			return new ResultVO(ResultCode.CODE_ERROR_UPDATE);
 		}
-		return parMap;
+		return new ResultVO();
 	}
 	
 	/**
@@ -1169,31 +638,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("appMerchantAccountShopVendorSelect.action")
-	public Map<String, Object> appMerchantAccountShopVendorSelect(Integer accountId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO appMerchantAccountShopVendorSelect(Integer accountId) {
 		if(accountId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			
-			List<Map<String, Object>> appMerchantAccountShopVendorSelect = baseVendorManager.appMerchantAccountShopVendorSelect(accountId);
-			Map<String, Object> map = new HashMap<String,Object>();
-			map.put("accountShopVendor", appMerchantAccountShopVendorSelect);
-			parMap.put("data",map);
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> appMerchantAccountShopVendorSelect = baseVendorManager.appMerchantAccountShopVendorSelect(accountId);
+		Map<String, Object> map = new HashMap<String,Object>();
+		map.put("accountShopVendor", appMerchantAccountShopVendorSelect);
+		return new ResultVO(map);
 	}
 	
 	/**
@@ -1203,24 +655,11 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("viewVisitSelect.action")
-	public Map<String, Object> viewVisitSelect(String beginTime,String endTime,String mainboardNoMD5,Boolean isTest,Integer communityId,Integer accountId,Integer eid,String openId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			
-			List<Map<String, Object>> viewVisitSelect = baseVendorManager.viewVisitSelect(beginTime,endTime, mainboardNoMD5, isTest,communityId,accountId, eid,openId,PageIndex, PageSize, IsSelectAll);
-			Map<String, Object> map = new HashMap<String,Object>();
-			map.put("viewVisits", viewVisitSelect);
-			parMap.put("data",map);
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+	public Map<String, Object> viewVisitSelect(String beginTime,String endTime,String mainboardNoMD5,Boolean isTest,Integer communityId,Integer accountId,Integer shopId,Integer eid,String openId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
+		List<Map<String, Object>> viewVisitSelect = baseVendorManager.viewVisitSelect(beginTime,endTime, mainboardNoMD5, isTest,communityId, accountId, shopId, eid,openId,PageIndex, PageSize, IsSelectAll);
+		Map<String, Object> map = new HashMap<String,Object>();
+		map.put("viewVisits", viewVisitSelect);
+		return map;
 	}
 	
 	/**
@@ -1230,29 +669,8 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("replenishmentStatistics.action")
-	public Map<String, Object> replenishmentStatistics(String beginTime,String endTime,String account,Integer eid,String productName,String productCode) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		if(account==null||beginTime==null||endTime==null||eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
-		}
-		try {
-			
-			Map<String, Object> replenishmentStatistics = baseVendorManager.replenishmentStatistics(eid, beginTime, endTime, account,productName, productCode);
-			parMap.put("data",replenishmentStatistics);
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+	public Map<String, Object> replenishmentStatistics(@Valid ProcBackstageVendorAppCustomerReplenishmentStatisticsDTO dto) {
+		return baseVendorManager.replenishmentStatistics(dto);
 	}
 	
 	/**
@@ -1263,21 +681,7 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("productSupplementSelect.action")
 	public Map<String, Object> productSupplementSelect(String beginTime,String endTime,Integer eid,String account,String productCode,String productName,String shopName,Boolean isTest,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			
-			Map<String, Object> replenishmentStatistics = baseVendorManager.productSupplementSelect(beginTime, endTime, eid, account, productCode, productName,shopName,isTest, PageIndex, PageSize, IsSelectAll);
-			parMap.put("data",replenishmentStatistics);
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		return baseVendorManager.productSupplementSelect(beginTime, endTime, eid, account, productCode, productName,shopName,isTest, PageIndex, PageSize, IsSelectAll);
 	}
 	
 	/**
@@ -1287,37 +691,18 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("productSupplementConfirm.action")
-	public Map<String, Object> productSupplementConfirm(Integer supplementId,Integer eid,Integer accountId,Integer realQuantity,String remark,Integer productId) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO productSupplementConfirm(Integer supplementId,Integer eid,Integer accountId,Integer realQuantity,String remark,Integer productId) {
 		if(supplementId==null||accountId==null||realQuantity==null||eid==null||productId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			
-			String tag = baseVendorManager.productSupplementConfirm(supplementId, eid, accountId, realQuantity, remark,productId);
-			if("1".equals(tag)) {
-				Map<String, Object> map =new HashMap<>();
-				map.put("TAG", tag);
-				parMap.put("data",map);
-			}else {
-				int code = Constants.CODE_ERROR_SYSTEM;
-				parMap.put("code", code);
-				parMap.put("message", tag);
-			}
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		String tag = baseVendorManager.productSupplementConfirm(supplementId, eid, accountId, realQuantity, remark,productId);
+		if("1".equals(tag)) {
+			Map<String, Object> map =new HashMap<>();
+			map.put("TAG", tag);
+			return new ResultVO(map);
+		}else {
+			return new ResultVO(ResultCode.CODE_ERROR_SYSTEM);
 		}
-		return parMap;
 	}
 	
 
@@ -1328,29 +713,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorErrorLogStatistics.action")
-	public Map<String, Object> vendorErrorLogStatistics(String beginTime,String endTime,Integer eid,Integer dataSource,String containerCode,Boolean isSend,Integer accountId,Boolean isDispose,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorErrorLogStatistics(String beginTime,String endTime,Integer eid,Integer dataSource,String containerCode,Boolean isSend,Integer accountId,Boolean isDispose,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
 		if(accountId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Map<String, Object>> vendorErrorLogStatistics = baseVendorManager.vendorErrorLogStatistics(beginTime, endTime, eid, dataSource, containerCode, isSend, accountId, isDispose, PageIndex, PageSize, IsSelectAll);
-			Map<String, Object> map = new HashMap<String, Object>();
-			map.put("vendorErrorLogStatistics", vendorErrorLogStatistics);
-			parMap.put("data", map);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> vendorErrorLogStatistics = baseVendorManager.vendorErrorLogStatistics(beginTime, endTime, eid, dataSource, containerCode, isSend, accountId, isDispose, PageIndex, PageSize, IsSelectAll);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("vendorErrorLogStatistics", vendorErrorLogStatistics);
+		return new ResultVO(map);
 	}
 	
 	/**
@@ -1361,19 +731,7 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("repetitionBuySelect.action")
 	public Map<String, Object> repetitionBuySelect(String beginTime,String endTime,Boolean isSearchTimeForAuth,String eName,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,Integer doorIndex,Boolean isTest,Integer buyTimesMoreThen,String cellphone,Integer sortType,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			Map<String, Object> repetitionBuySelect = baseVendorManager.repetitionBuySelect(beginTime, endTime, isSearchTimeForAuth, eName, eid, mainboardNo, orderStatus, dataSourse, isPay, productName, shopName, doorIndex, isTest, buyTimesMoreThen, cellphone,sortType, PageIndex, PageSize, IsSelectAll);
-			parMap.put("data", repetitionBuySelect);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		return baseVendorManager.repetitionBuySelect(beginTime, endTime, isSearchTimeForAuth, eName, eid, mainboardNo, orderStatus, dataSourse, isPay, productName, shopName, doorIndex, isTest, buyTimesMoreThen, cellphone,sortType, PageIndex, PageSize, IsSelectAll);
 	}
 	
 	/**
@@ -1383,20 +741,8 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorMainboardOrProductIdBuySelect.action")
-	public Map<String, Object> vendorMainboardOrProductIdBuySelect(Integer statisticsType,String beginTime,String endTime,String eName,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,Integer doorIndex,Boolean isTest,Integer buyTimesMoreThen,String cellphone,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			Map<String, Object> vendorMainboardOrProductIdBuySelect = baseVendorManager.vendorMainboardOrProductIdBuySelect(statisticsType, beginTime, endTime, eName, eid, mainboardNo, orderStatus, dataSourse, isPay, productName, shopName, doorIndex, isTest, buyTimesMoreThen, cellphone, PageIndex, PageSize, IsSelectAll);
-			parMap.put("data", vendorMainboardOrProductIdBuySelect);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+	public Map<String, Object> vendorMainboardOrProductIdBuySelect(Integer statisticsType,String beginTime,String endTime,String eName,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,Integer doorIndex,Boolean isTest,Integer buyTimesMoreThen, Integer mainboardType, String cellphone,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
+		return baseVendorManager.vendorMainboardOrProductIdBuySelect(statisticsType, beginTime, endTime, eName, eid, mainboardNo, orderStatus, dataSourse, isPay, productName, shopName, doorIndex, isTest, buyTimesMoreThen, mainboardType, cellphone, PageIndex, PageSize, IsSelectAll);
 	}
 	
 	/**
@@ -1407,21 +753,10 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("findVendorReplenishmentPlan.action")
 	public Map<String, Object> findVendorReplenishmentPlan(Integer eid,Integer shopId,Integer containerId,Integer accountId,Integer PageIndex, Integer PageSize, Boolean IsSelectAll){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			List<Map<String, Object>> vendorReplenishmentPlanSelect = baseVendorManager.vendorReplenishmentPlanSelect(eid,shopId, containerId, accountId,PageIndex, PageSize, IsSelectAll);
-			Map<String, Object> map = new HashMap<String, Object>();
-			map.put("replenishmentPlans", vendorReplenishmentPlanSelect);
-			parMap.put("data", map);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> vendorReplenishmentPlanSelect = baseVendorManager.vendorReplenishmentPlanSelect(eid,shopId, containerId, accountId,PageIndex, PageSize, IsSelectAll);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("replenishmentPlans", vendorReplenishmentPlanSelect);
+		return map;
 	}
 	
 	/**
@@ -1432,21 +767,10 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("findVendorReplenishmentPlanDetails.action")
 	public Map<String, Object> findVendorReplenishmentPlanDetails(Integer planId,Integer mainboardId){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			List<Map<String, Object>> details = baseVendorManager.vendorReplenishmentPlanDetailsSelect(planId,mainboardId);
-			Map<String, Object> map = new HashMap<String, Object>();
-			map.put("replenishmentPlanDetails", details);
-			parMap.put("data", map);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> details = baseVendorManager.vendorReplenishmentPlanDetailsSelect(planId,mainboardId);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("replenishmentPlanDetails", details);
+		return map;
 	}
 	
 	/**
@@ -1456,83 +780,49 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorReplenishmentPlanOper.action")
-	public Map<String, Object> vendorReplenishmentPlanOper(String oper,Integer planId,String mainboardIds,Integer shopId,Integer containerId,String planName,Boolean isShopAll,String creater,String productJsonArray){
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO vendorReplenishmentPlanOper(String oper,Integer planId,String mainboardIds,Integer shopId,Integer containerId,String planName,Boolean isShopAll,String creater,Integer warningNum,String productJsonArray){
 		if(oper==null||(!"ADD".equals(oper)&&!"DEL".equals(oper)&&!"UPDATE".equals(oper)&&!"REPLACE".equals(oper))) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Integer> mIds = new ArrayList<Integer>();
-			if(mainboardIds!=null&&!StringUtils.isEmpty(mainboardIds)) {
-				String[] split = mainboardIds.split(",");
-				for (String mIdstr : split) {
-					int parseInt = Integer.parseInt(mIdstr);
-					mIds.add(parseInt);
-				}
+		List<Integer> mIds = new ArrayList<Integer>();
+		if(mainboardIds!=null&&!StringUtils.isEmpty(mainboardIds)) {
+			String[] split = mainboardIds.split(",");
+			for (String mIdstr : split) {
+				int parseInt = Integer.parseInt(mIdstr);
+				mIds.add(parseInt);
 			}
-			
-			if("ADD".equals(oper)){
-				if((mIds.size()==0&&(shopId==null||containerId==null))||planName==null||isShopAll==null||creater==null||productJsonArray==null) {
-					int code = Constants.CODE_ERROR_PARAM;
-					String message = Constants.getCodeValue(code);
-					parMap.put("code", code);
-					parMap.put("message", message);
-					return parMap;
-				}
-				
-				JSONArray parseArray = JSONArray.parseArray(productJsonArray);
-				Integer result = baseVendorManager.insertVendorReplenishmentPlan(mIds,shopId,containerId, planName, isShopAll, creater, parseArray);
-				if(-1==result.intValue()) {
-					// 货柜店铺或类型不相同
-					int code = Constants.CODE_VENDOE_SHOP_OR_TYPE_DIFFERENT;
-					String message = Constants.getCodeValue(code);
-					parMap.put("code", code);
-					parMap.put("message", message);
-					return parMap;
-				}
-			}else if("DEL".equals(oper)) {
-				if(planId==null) {
-					int code = Constants.CODE_ERROR_PARAM;
-					String message = Constants.getCodeValue(code);
-					parMap.put("code", code);
-					parMap.put("message", message);
-					return parMap;
-				}
-				baseVendorManager.removeVendorReplenishmentPlan(planId);
-			}else if("UPDATE".equals(oper)) {
-				if(planId==null) {
-					int code = Constants.CODE_ERROR_PARAM;
-					String message = Constants.getCodeValue(code);
-					parMap.put("code", code);
-					parMap.put("message", message);
-					return parMap;
-				}
-				JSONArray parseArray = JSONArray.parseArray(productJsonArray);
-				baseVendorManager.updateVendorReplenishmentPlan(mIds, planId, planName, isShopAll, parseArray);
-			}else if("REPLACE".equals(oper)) {
-				if(mIds.size()==0||planId==null) {
-					int code = Constants.CODE_ERROR_PARAM;
-					String message = Constants.getCodeValue(code);
-					parMap.put("code", code);
-					parMap.put("message", message);
-					return parMap;
-				}
-				baseVendorManager.updateVendorReplenishmentPlanByPlanId(mIds, planId);
-			}
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
 		}
-		return parMap;
+
+		if("ADD".equals(oper)){
+			if((mIds.size()==0&&(shopId==null||containerId==null))||planName==null||isShopAll==null||creater==null||warningNum==null||productJsonArray==null) {
+				return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+			}
+
+			JSONArray parseArray = JSONArray.parseArray(productJsonArray);
+			Integer result = baseVendorManager.insertVendorReplenishmentPlan(mIds,shopId,containerId, planName, isShopAll, creater, warningNum, parseArray);
+			if(-1==result.intValue()) {
+				// 货柜店铺或类型不相同
+				return new ResultVO(ResultCode.CODE_VENDOE_SHOP_OR_TYPE_DIFFERENT);
+			}
+		}else if("DEL".equals(oper)) {
+			if(planId==null) {
+				return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+			}
+			baseVendorManager.removeVendorReplenishmentPlan(planId);
+		}else if("UPDATE".equals(oper)) {
+			if(planId==null) {
+				return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+			}
+			JSONArray parseArray = JSONArray.parseArray(productJsonArray);
+			baseVendorManager.updateVendorReplenishmentPlan(mIds, planId, planName, isShopAll, parseArray);
+		}else if("REPLACE".equals(oper)) {
+			if(mIds.size()==0||planId==null) {
+				return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+			}
+			baseVendorManager.updateVendorReplenishmentPlanByPlanId(mIds, planId);
+		}
+			
+		return new ResultVO();
 	}
 	
 
@@ -1543,29 +833,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findVendorSellProductKindNum.action")
-	public Map<String, Object> findVendorSellProductKindNum(Integer accountId){
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findVendorSellProductKindNum(Integer accountId){
 		if(accountId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Map<String, Object>> details = baseVendorManager.selectVendorSellProductKindNum(accountId);
-			Map<String, Object> map = new HashMap<String, Object>();
-			map.put("vendorProductNum", details);
-			parMap.put("data", map);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> details = baseVendorManager.selectVendorSellProductKindNum(accountId);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("vendorProductNum", details);
+		return new ResultVO(map);
 	}
 	
 	/**
@@ -1585,20 +860,7 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("findVendorAppMerchantProductStorageDetail.action")
 	public Map<String, Object> findVendorAppMerchantProductStorageDetail(String beginTime,String endTime,Integer eid,String account,String productCode,String productName,String shopName,Boolean isTest,String remark,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			Map<String, Object> details = baseVendorManager.vendorAppMerchantProductStorageDetailSelect(beginTime, endTime, eid, account, productCode, productName, shopName, isTest, remark,PageIndex, PageSize, IsSelectAll);
-			parMap.put("data", details);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		return baseVendorManager.vendorAppMerchantProductStorageDetailSelect(beginTime, endTime, eid, account, productCode, productName, shopName, isTest, remark,PageIndex, PageSize, IsSelectAll);
 	}
 	
 	/**
@@ -1607,20 +869,7 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("onSaleCommodityStatisticsByProudct.action")
 	public Map<String, Object> onSaleCommodityStatistics(Integer eid,Integer doorStatus,String productName,String productCode,String shortName,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			Map<String, Object> details = baseVendorManager.vendorDoorSelectGroupByProductId(eid, doorStatus, productName, productCode, shortName, PageIndex, PageSize, IsSelectAll);
-			parMap.put("data", details);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		return baseVendorManager.vendorDoorSelectGroupByProductId(eid, doorStatus, productName, productCode, shortName, PageIndex, PageSize, IsSelectAll);
 	}
 	
 	/**
@@ -1629,20 +878,7 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("onSaleCommodityStatisticsProudctId.action")
 	public Map<String, Object> onSaleCommodityStatistics(Integer eid,Integer doorStatus,Integer productId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			Map<String, Object> details = baseVendorManager.vendorDoorSelectGroupByProductIdAndMainboardId(eid, productId, doorStatus, PageIndex, PageSize, IsSelectAll);
-			parMap.put("data", details);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		return baseVendorManager.vendorDoorSelectGroupByProductIdAndMainboardId(eid, productId, doorStatus, PageIndex, PageSize, IsSelectAll);
 	}
 	
 
@@ -1653,22 +889,14 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findVendorProductReplenishmentClass.action")
-	public Map<String, Object> findVendorProductReplenishmentClass(){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			List<VendorProductReplenishmentClass> details = baseVendorManager.selectVendorProductReplenishmentClass();
-			Map<String, Object> map = new HashMap<String, Object>();
-			map.put("replenishmentClass", details);
-			parMap.put("data", map);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+	public ResultVO findVendorProductReplenishmentClass(Integer eid){
+		/*if(eid==null){
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}*/
+		List<VendorProductReplenishmentClass> details = baseVendorManager.selectVendorProductReplenishmentClass(eid);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("replenishmentClass", details);
+		return new ResultVO(map);
 	}
 	
 	/**
@@ -1678,29 +906,15 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findUnlockingByOrderId.action")
-	public Map<String, Object> findUnlockingByOrderId(Integer orderId){
+	public ResultVO findUnlockingByOrderId(Integer orderId){
 		Map<String, Object> parMap = CallBackPar.getParMap();
 		if(orderId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Map<String, Object>> selectUnlockingByOrderId = baseVendorManager.selectUnlockingByOrderId(orderId);
-			Map<String, Object> map = new HashMap<String, Object>();
-			map.put("unlockingDetail", selectUnlockingByOrderId);
-			parMap.put("data", map);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> selectUnlockingByOrderId = baseVendorManager.selectUnlockingByOrderId(orderId);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("unlockingDetail", selectUnlockingByOrderId);
+		return new ResultVO(map);
 	}
 	
 	/**
@@ -1711,19 +925,7 @@ public class VendorAction extends BaseAction {
 	 */
 	@RequestMapping("allOnLineMainboards.action")
 	public String allOnLineMainboards(){
-		try {
-			String allOnLineMainboards = baseVendorManager.allOnLineMainboards();
-			return allOnLineMainboards;
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			JSONObject parMap = new JSONObject();
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap.toJSONString();
-		}
+		return baseVendorManager.allOnLineMainboards();
 	}
 	
 	/**
@@ -1733,22 +935,16 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("vendorOrderAppleFor.action")
-	public Map<String, Object> vendorOrderAppleFor(Integer orderId,Double applyRefundMoney,String explain,String cellphone,String openId){
-		Map<String, Object> parMap = CallBackPar.getParMap();
-
+	public ResultVO vendorOrderAppleFor(Integer orderId,Double applyRefundMoney,String explain,String cellphone,String openId){
 		Map<String, Object> refundApply = baseVendorManager.refundApply(orderId,applyRefundMoney, explain, cellphone, openId);
 		String tag = (String) refundApply.get("TAG");
 		if("1".equals(tag)) {
 			Map<String, Object> map =new HashMap<>();
 			map.put("TAG", tag);
-			parMap.put("data",map);
+			return new ResultVO(map);
 		}else {
-			int code = Constants.CODE_ERROR_SYSTEM;
-			parMap.put("code", code);
-			parMap.put("message", tag);
+			return new ResultVO(ResultCode.CODE_ERROR_SYSTEM);
 		}
-
-		return parMap;
 	}
 
 
@@ -1759,19 +955,12 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findVendorOrProductBuyStatistics.action")
-	public Map<String, Object> findVendorOrProductBuyStatistics(Integer statisticsType,String beginTime,String endTime,String eName,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,Integer doorIndex,Boolean isTest,Integer buyTimesMoreThen,String cellphone,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findVendorOrProductBuyStatistics(Integer statisticsType,String beginTime,String endTime,String eName,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,Integer doorIndex,Boolean isTest,Integer buyTimesMoreThen,Integer mainboardType,String cellphone,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
 		if(statisticsType==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		Map<String, Object> vendorOrProductBuyStatistics = baseVendorManager.Proc_Backstage_vendor_order_select_groupByMainboardIdOrProductId(statisticsType, beginTime, endTime, eName, eid, mainboardNo, orderStatus, dataSourse, isPay, productName, shopName, doorIndex, isTest, buyTimesMoreThen, cellphone, PageIndex, PageSize, IsSelectAll);
-		parMap.put("data", vendorOrProductBuyStatistics);
-
-		return parMap;
+		Map<String, Object> vendorOrProductBuyStatistics = baseVendorManager.Proc_Backstage_vendor_order_select_groupByMainboardIdOrProductId(statisticsType, beginTime, endTime, eName, eid, mainboardNo, orderStatus, dataSourse, isPay, productName, shopName, doorIndex, isTest, buyTimesMoreThen, mainboardType, cellphone, PageIndex, PageSize, IsSelectAll);
+		return new ResultVO(vendorOrProductBuyStatistics);
 	}
 
 	/**
@@ -1791,11 +980,548 @@ public class VendorAction extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("replenishmentRecordSelect.action")
-	public Map<String,Object> replenishmentRecordSelect(String beginTime,String endTime,Integer eid,String account,String productCode,String productName,Boolean isTest,String containerCode,Integer doorIndex,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
+	public Map<String,Object> replenishmentRecordSelect(ReplenishmentRecordSelectReqDTO dto){
+		return baseVendorManager.Proc_Backstage_vendor_replenishment_select(dto);
+	}
+
+	/**
+	 *	171.补货
+	 * @param beginTime
+	 * @param endTime
+	 * @param eid
+	 * @param account
+	 * @param productCode
+	 * @param productName
+	 * @param isTest
+	 * @param containerCode
+	 * @param doorIndex
+	 * @param PageIndex
+	 * @param PageSize
+	 * @param IsSelectAll
+	 * @return
+	 */
+	@RequestMapping("shelfReplenishmentOper.action")
+	public ResultVO shelfReplenishmentOper(Integer eid,Integer mainboardId,Integer productId,Integer productQuantity,Integer outProductId,Integer outProductQuantity,String account,Integer typeId, String typeName,String location){
+		if(eid==null||mainboardId==null||productId==null||productQuantity==null||outProductId==null||outProductQuantity==null||account==null||typeId==null||typeName==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		String tag = baseVendorManager.Proc_Backstage_vendor_AppCustomer_DoorReplenishment_Stand(eid,mainboardId,productId,productQuantity,outProductId,outProductQuantity,account,typeId, typeName,location);
+		if(!"1".equals(tag)){
+			throw new ResultException(tag);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 175.批量校验开锁
+	 *
+	 * @param clientId
+	 *            商户ID
+	 * @return
+	 */
+	@RequestMapping("doorInitValidByBatch.action")
+	public ResultVO doorInitValidByBatch(Integer mainboardId,Integer eid,String doorList,String mainboardNo) {
+		if(eid==null||mainboardId==null||doorList==null||mainboardNo==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		try {
+			JSONArray objects = JSONArray.parseArray(doorList);
+			for (int i=0;i<objects.size();i++){
+				JSONObject jsonObject = objects.getJSONObject(i);
+				if(jsonObject.isEmpty()||jsonObject.get("doorIndex")==null||jsonObject.get("portNo")==null){
+					return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+				}
+			}
+		} catch (Exception e) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		String doorInitValid = baseVendorManager.doorInitValid(mainboardId,mainboardNo,eid, doorList);
+		JSONObject parseObject = JSON.parseObject(doorInitValid);
+		return new ResultVO(parseObject.getIntValue("code"),parseObject.getString("message"));
+	}
+
+	/**
+	 * 177.赔偿积分
+	 * @param eid
+	 * @param orderId
+	 * @param accountId
+	 * @return
+	 */
+	@RequestMapping("compensateIntegral.action")
+	public ResultVO compensateIntegral(Integer eid,Integer orderId,Integer accountId){
 		Map<String, Object> parMap = CallBackPar.getParMap();
-		Map<String, Object> replenishmentRecordSelect = baseVendorManager.Proc_Backstage_vendor_replenishment_select(beginTime, endTime, eid, account, productCode, productName, isTest, containerCode, doorIndex, PageIndex, PageSize, IsSelectAll);
-		setData(parMap,replenishmentRecordSelect);
+		if(eid==null||orderId==null||accountId==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		String tag = baseVendorManager.Proc_Backstage_order_compensateIntegral(eid,orderId,accountId);
+		if(!"1".equals(tag)){
+			throw new ResultException(tag);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 178.修改缺货预警数值
+	 * @param planId
+	 * @param warningNum
+	 * @return
+	 */
+	@RequestMapping("updateStockoutWarning.action")
+	public ResultVO updateStockoutWarning(Integer planId,Integer warningNum){
+		if(planId==null||warningNum==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		Integer integer = baseVendorManager.updateStockoutWarning(planId, warningNum);
+		if(1!=integer){
+			return new ResultVO(ResultCode.CODE_ERROR_UPDATE);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 179.补货类型
+	 *
+	 *
+	 * @return
+	 */
+	@RequestMapping("replenishmentType.action")
+	public ResultVO replenishmentType(Integer eid){
+		if(eid==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		List<Map<String, Object>> replenishmentType = baseVendorManager.Proc_Backstage_vendor_replenishment_type_select(eid);
+		Map<String,Object> data = new HashMap<>();
+		data.put("replenishmentTypes",replenishmentType);
+		return new ResultVO(data);
+	}
+	/**
+	 * 180.自动售货机补货类型统计
+	 *
+	 *
+	 * @return
+	 */
+	@RequestMapping("replenishmentTypeStatistics.action")
+	public ResultVO replenishmentTypeStatistics(Integer statisticsType,String beginTime,String endTime,Integer eid,String mainboardNo,Integer operatType,Integer shopId	,Boolean isTest,Integer mainboardType,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
+		if(statisticsType==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		List<Map<String, Object>> replenishmentType = baseVendorManager.Proc_Backstage_vendor_replenishment_type_select_statistics(statisticsType, beginTime, endTime, eid, mainboardNo, operatType, shopId, isTest, mainboardType, PageIndex, PageSize, IsSelectAll);
+		Map<String,Object> data = new HashMap<>();
+		data.put("replenishmentTypeStatistics",replenishmentType);
+		return new ResultVO(data);
+	}
+
+	/**
+	 * 查询驿站关注领取活动
+	 * @param eid
+	 * @param openId
+	 * @param clientId
+	 * @return
+	 */
+	@RequestMapping("findVendorCouponToWechatActivity")
+	public ResultVO findVendorCouponToWechatActivity(Integer eid,String openId,Integer clientId){
+		if(eid==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		Map<String, Object> data = baseVendorManager.selectVendorCouponToWechatActivityByUser(eid, openId, clientId);
+		return new ResultVO(data);
+	}
+	/**
+	 * 驿站创建临时用户
+	 * @param eid
+	 * @param openId
+	 * @param clientId
+	 * @return
+	 */
+	@RequestMapping("creationTempClientId")
+	public ResultVO creationTempClientId(Integer eid,String openId,String appId,String unionId) throws Exception{
+		if(openId==null||appId==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		Map<String, Object> data = baseVendorManager.creationTempClientId(eid, openId, appId, unionId);
+		return new ResultVO(data);
+	}
+	/**
+	 * 查询驿站临时用户和水趣注册用户
+	 * @param eid
+	 * @param openId
+	 * @param clientId
+	 * @return
+	 */
+	@RequestMapping("vendorLoginSelect")
+	public ResultVO vendorLoginSelect(String openId){
+		if(openId==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		Map<String, Object> data = baseVendorManager.vendorLoginSelect(openId);
+		return new ResultVO(data);
+	}
+
+	/**
+	 * 查询红包发送供水趣公众号关注时用
+	 * @param eid
+	 * @param openId
+	 * @param clientId
+	 * @return
+	 */
+	@RequestMapping("vendorQueueSendPacket")
+	public String vendorQueueSendPacket(Integer orderId,String openId,Integer typeId,String authorizer_appid){
+		String parMap = CallBackPar.getParString();
+		baseVendorManager.vendorQueueSendPacket(orderId, openId, typeId, authorizer_appid);
 		return parMap;
 	}
 
+	/**
+	 * 202.记录补货员扫码位置
+	 * @return
+	 */
+	@RequestMapping("recordStaffScanCodeLocation.action")
+	public ResultVO recordStaffScanCodeLocation(@Valid VendorStaffScanCodeLocationReqDTO dto){
+		int i = baseVendorManager.recordStaffScanCodeLocation(dto);
+		if(1!=i){
+			return new ResultVO(ResultCode.CODE_ERROR_OPERATION);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 203.查询补货员扫码补货位置轨迹
+	 * @return
+	 */
+	@RequestMapping("staffScanLocationSelect.action")
+	public Map<String,Object> staffScanLocationSelect(ProcXHXStaffScanLocationSelectReqDTO dto){
+		return baseVendorManager.staffScanLocationSelect(dto);
+	}
+
+	/**
+	 * 212.记录柜门图片状态
+	 * @return
+	 */
+	@RequestMapping("recordVendorStatusImage.action")
+	public ResultVO recordVendorStatusImage(@Valid InsertVendorStatusImageRecordInputDTO dto,@RequestParam("statusImage") MultipartFile statusImage) throws IOException {
+		if(statusImage==null){
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		int update = baseVendorManager.insertVendorStatusImageRecord(dto,statusImage);
+		if(update!=1){
+			return new ResultVO(ResultCode.CODE_ERROR_OPERATION);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 213.查询柜门图片状态记录
+	 * @return
+	 */
+	@RequestMapping("vendorStatusImageRecordSelect.action")
+	public Map<String,Object> vendorStatusImageRecordSelect(ProcXhxVendorStatusImageRecordSelect dto){
+		return baseVendorManager.Proc_XHX_vendor_status_image_record_select(dto);
+	}
+
+	/**
+	 * 220.操作送货上门商品
+	 * @return
+	 */
+	@RequestMapping("operSingleProduct.action")
+	public ResultVO operSingleProduct(@Valid SingleProduct product,@RequestParam("productImage") MultipartFile... productImage) throws IOException {
+		if(product.getProductId()==null&&productImage.length==0){
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		int count = baseVendorManager.operSingleProduct(product,productImage.length>0?productImage[0]:null);
+		if(count==0){
+			return new ResultVO(ResultCode.CODE_ERROR_OPERATION);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 221.查询送货上门商品
+	 * @return
+	 */
+	@RequestMapping("selectSingleProduct.action")
+	public Map<String,Object> selectSingleProduct(@Valid ProcBackstageSingleProductSelectReqDTO dto){
+		return baseVendorManager.selectSingleProducts(dto);
+	}
+
+	/**
+	 * 222.送货到家订单查询
+	 * @param dto
+	 * @return
+	 */
+	@RequestMapping("singleProductOrderSelect.action")
+	public Map<String,Object> singleProductOrderSelect(ProcBackstageSingleOrderSelectReqDTO dto){
+		return baseVendorManager.Proc_Backstage_single_order_select(dto);
+	}
+
+	/**
+	 * 223.送货到家商品上下架
+	 * @param hitTheShelf
+	 * @param productId
+	 * @return
+	 */
+	@RequestMapping("updateSingleProductHitTheShelf.action")
+	public ResultVO updateSingleProductHitTheShelf(Boolean hitTheShelf,Integer productId){
+		if(hitTheShelf==null||productId==null){
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		baseVendorManager.updateSingleProductHitTheShelf(hitTheShelf, productId);
+		return new ResultVO();
+	}
+
+	/**
+	 * 224.送货到家商品删除
+	 * @param hitTheShelf
+	 * @param productId
+	 * @return
+	 */
+	@RequestMapping("deleteSingleProduct.action")
+	public ResultVO deleteSingleProduct(Integer productId){
+		if(productId==null){
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		baseVendorManager.deleteSingleProduct( productId);
+		return new ResultVO();
+	}
+
+	/**
+	 * 225.上传驿站支付子商户号申请
+	 * @param hitTheShelf
+	 * @param productId
+	 * @return
+	 */
+	@RequestMapping("addPaySubAccount.action")
+	public ResultVO addPaySubAccount(@Valid EWechatServicepaySubaccountApplyInputDTO dto){
+
+		baseVendorManager.insertEWechatServicepaySubaccountApply(dto);
+		return new ResultVO();
+	}
+
+	/**
+	 * 226.查询驿站支付子商户号申请
+	 * @param hitTheShelf
+	 * @param productId
+	 * @return
+	 */
+	@RequestMapping("findPaySubAccount.action")
+	public ResultVO findPaySubAccount(Integer accountId){
+		if(accountId==null){
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		List<EWechatServicepaySubaccountApplyRepDTO> ePaySubAccounts = baseVendorManager.selectEWechatServicepaySubaccountApplyByAccount(accountId);
+		Map result = new HashMap(1);
+		if(ePaySubAccounts.size()>0){
+			result.put("paySub",ePaySubAccounts.get(0));
+		}else{
+			result.put("paySub","");
+		}
+		return new ResultVO(result);
+	}
+
+
+	/**
+	 * 227.修改驿站支付子商户号申请
+	 * @param hitTheShelf
+	 * @param productId
+	 * @return
+	 */
+	@RequestMapping("updatePaySubAccount.action")
+	public ResultVO updatePaySubAccount(@Valid EWechatServicepaySubaccountApplyInputDTO dto){
+
+		baseVendorManager.updateEWechatServicepaySubaccountApply(dto);
+		return new ResultVO();
+	}
+
+	/**
+	 * 228.匹配支付银行
+	 * @param hitTheShelf
+	 * @param productId
+	 * @return
+	 */
+	@RequestMapping("matchingApplyBank.action")
+	public Map<String,Object> matchingApplyBank(String bankName, PagingPojo pojo){
+		if(StringUtils.isBlank(bankName)){
+			Map<String,Object> result = new HashMap();
+			result.put("bankData",Arrays.asList());
+			return result;
+		}
+		Map<String, Object> map = baseVendorManager.selectEWechatServicepaySubaccountApplyBank(bankName, pojo);
+		return map;
+	}
+
+	/**
+	 * 229.省市区
+	 * @param hitTheShelf
+	 * @param productId
+	 * @return
+	 */
+	@RequestMapping("applyProvince.action")
+	public List<EWechatServicepaySubaccountApplyProvinceRepDTO> applyProvince(){
+		List<EWechatServicepaySubaccountApplyProvinceRepDTO> result = baseVendorManager.selectEWechatServicepaySubaccountApplyProvince();
+		return result;
+	}
+
+	/**
+	 * 230.支付子商户号申请图片上传
+	 * @param hitTheShelf
+	 * @param productId
+	 * @return
+	 */
+	@RequestMapping("subaccountApplyImgUpload.action")
+	public Map<String,Object> subaccountApplyImgUpload(@RequestParam("img") MultipartFile... img) throws Exception {
+		if(img.length==0){
+			throw BaseRuntimeException.jointCodeAndMessage(ResultCode.CODE_ERROR_PARAM);
+		}
+		return baseVendorManager.subaccountApplyImgUpload(img[0]);
+	}
+
+	/**
+	 * 231.匹配微信支付银行
+	 * @param hitTheShelf
+	 * @param productId
+	 * @return
+	 */
+	@RequestMapping("wechatMatchingApplyBank.action")
+	public Map<String,Object> wechatMatchingApplyBank(String bankName, PagingPojo pojo){
+		if(StringUtils.isBlank(bankName)){
+			Map<String,Object> result = new HashMap();
+			result.put("bankData",Arrays.asList());
+			return result;
+		}
+		Map<String, Object> map = baseVendorManager.selectEWechatServicepaySubaccountApplyBankname(bankName, pojo);
+		return map;
+	}
+
+	/**
+	 * 232.修改送货到家订单状态
+	 * @param hitTheShelf
+	 * @param productId
+	 * @return
+	 */
+	@RequestMapping("updateSingleOrderStatus.action")
+	public ResultVO updateSingleOrderStatus(Integer orderStatus,Integer orderId){
+
+		int count = baseVendorManager.updateSingleOrderStatus(orderStatus, orderId);
+		if(count!=1){
+			return new ResultVO(ResultCode.CODE_ERROR_OPERATION);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 233.添加跳转水趣商品
+	 * @param skipShuiqooProduct
+	 * @return
+	 */
+	@RequestMapping("addSkipShuiqooProduct.action")
+	public ResultVO addSkipShuiqooProduct(@Valid SkipShuiqooProduct skipShuiqooProduct){
+		baseVendorManager.addSkipShuiqooProduct(skipShuiqooProduct);
+		return new ResultVO();
+	}
+
+	/**
+	 * 234.删除跳转水趣商品
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("removeSkipShuiqooProduct.action")
+	public ResultVO removeSkipShuiqooProduct(Integer id){
+		baseVendorManager.removeSkipShuiqooProduct(id);
+		return new ResultVO();
+	}
+
+	/**
+	 * 235.查询跳转水趣商品
+	 * @param dto
+	 * @return
+	 */
+	@RequestMapping("findSingleProductsByEid.action")
+	public Map<String,Object> findSingleProductsByEid(@Valid SkipShuiqooProductReqDTO dto){
+		return baseVendorManager.selectSkipShuiqooProductRepByEid(dto);
+	}
+
+	/**
+	 * 243.新增售货机商品
+	 * @param dto
+	 * @return
+	 */
+	@RequestMapping("addVendorProduct.action")
+	public ResultVO addVendorProduct(@Valid AddVendorProductReqDTO dto){
+		int i = baseVendorManager.insertVendorProduct(dto);
+		if(1!=i){
+			throw BaseRuntimeException.jointCodeAndMessage(ResultCode.CODE_ERROR_OPERATION);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 244.删除售货机商品
+	 * @param dto
+	 * @return
+	 */
+	@RequestMapping("removeVendorProduct.action")
+	public ResultVO removeVendorProduct(Integer id){
+		if(id==null){
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		int i = baseVendorManager.deleteSingleProduct(id);
+		if(1!=i){
+			throw BaseRuntimeException.jointCodeAndMessage(ResultCode.CODE_ERROR_OPERATION);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 245.修改售货机商品
+	 * @param dto
+	 * @return
+	 */
+	@RequestMapping("updateVendorProduct.action")
+	public ResultVO updateVendorProduct(@Valid UpdateVendorProductReqDTO dto){
+
+		int i = baseVendorManager.updateVendorProduct(dto);
+		if(1!=i){
+			throw BaseRuntimeException.jointCodeAndMessage(ResultCode.CODE_ERROR_UPDATE);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 246.根据补货员查询售货机商品
+	 * @param dto
+	 * @return
+	 */
+	@RequestMapping("findVendorProductByAccountId.action")
+	public Map<String,Object> findVendorProductByAccountId(@Valid FindVendorProductByAccountIdReqDTO dto){
+		return baseVendorManager.selectVendorProductByAccountId(dto);
+	}
+
+	/**
+	 * 248.操作补货员常用商品
+	 * @param dto
+	 * @return
+	 */
+	@RequestMapping("operVendorAppMerchantAccountProduct.action")
+	public ResultVO operVendorAppMerchantAccountProduct(@Valid VendorAppMerchantAccountProduct product){
+		int i = baseVendorManager.operVendorAppMerchantAccountProduct(product);
+		if(i>0){
+			return new ResultVO();
+		}else{
+			return new ResultVO(ResultCode.CODE_ERROR_OPERATION);
+		}
+	}
+
+	/**
+	 * 249.删除补货员常用商品
+	 * @param dto
+	 * @return
+	 */
+	@RequestMapping("removeVendorAppMerchantAccountProduct.action")
+	public ResultVO removeVendorAppMerchantAccountProduct(@Valid VendorAppMerchantAccountProduct product){
+		int i = baseVendorManager.removeVendorAppMerchantAccountProduct(product);
+		if(i>0){
+			return new ResultVO();
+		}else{
+			return new ResultVO(ResultCode.CODE_ERROR_OPERATION);
+		}
+	}
 }

@@ -4,6 +4,7 @@ import com.evian.sqct.bean.util.JPushConfig;
 import com.evian.sqct.bean.vendor.PayParam;
 import com.evian.sqct.bean.vendor.UrlManage;
 import com.evian.sqct.dao.IOrderDao;
+import com.evian.sqct.service.BaseVendorManager;
 import com.evian.sqct.util.QiniuConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -21,6 +22,9 @@ public class StartupRunnerServlet implements CommandLineRunner {
 	@Autowired
 	@Qualifier("orderDao")
 	private IOrderDao orderDao;
+
+	@Autowired
+	private BaseVendorManager vendorManagerManager;
 	
 	@Override
 	public void run(String... args) throws Exception {
@@ -51,6 +55,7 @@ public class StartupRunnerServlet implements CommandLineRunner {
 
 		JPushConfig.setAppkey(env.getProperty("jpush.appkey"));
 		JPushConfig.setMastersecret(env.getProperty("jpush.mastersecret"));
-
+		vendorManagerManager.selectEWechatServicepaySubaccountApplyBank();
+		vendorManagerManager.selectEWechatServicepaySubaccountApplyBankname();
 	}
 }

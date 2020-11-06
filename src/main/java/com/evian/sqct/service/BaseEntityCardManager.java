@@ -3,7 +3,6 @@ package com.evian.sqct.service;
 import com.evian.sqct.bean.user.EclientDTO;
 import com.evian.sqct.dao.IEntityCardDao;
 import com.evian.sqct.exception.ResultException;
-import com.evian.sqct.util.WebConfig;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.slf4j.Logger;
@@ -35,14 +34,10 @@ public class BaseEntityCardManager {
 
 
     public String Proc_Backstage_entity_card_storeIn_code_activate(Integer eid,Integer accountId,String barCode){
-        logger.info("[project:{}] [step:enter] [eid:{}] [accountId:{}] [barCode:{}]",
-                new Object[] { WebConfig.projectName,eid,accountId,barCode});
         return entityCardDao.Proc_Backstage_entity_card_storeIn_code_activate(eid, accountId, barCode);
     }
 
     public Map<String,Object> Proc_Backstage_entity_card_storeIn_code_select(String beginTime,String endTime,Integer eid,Integer codeStatus,String cardCode,String barCode,String qrcode,Boolean isActivate,Integer accountId,String pcode,String account,String buyAccount,String useAccount,String sellBeginTime, String sellEndTime,String batchName,String storeType,String storeName,Boolean isExchange,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-        logger.info("[project:{}] [step:enter] [beginTime:{}] [endTime:{}] [eid:{}] [codeStatus:{}] [cardCode:{}] [barCode:{}] [qrcode:{}] [isActivate:{}] [accountId:{}] [pcode:{}] [account:{}] [buyAccount:{}] [useAccount:{}] [sellBeginTime:{}] [sellEndTime:{}] [batchName:{}] [storeType:{}] [storeName:{}] [isExchange:{}] [PageIndex:{}] [PageSize:{}] [IsSelectAll:{}]",
-                new Object[] { WebConfig.projectName,beginTime,endTime,eid,codeStatus,cardCode,barCode,qrcode,isActivate,accountId,pcode,account,buyAccount, useAccount,sellBeginTime,sellEndTime,batchName,storeType, storeName,isExchange,PageIndex,PageSize,IsSelectAll});
         Map<String, Object> result = entityCardDao.Proc_Backstage_entity_card_storeIn_code_select(beginTime, endTime, eid, codeStatus, cardCode, barCode, qrcode,isActivate, accountId, pcode, account,buyAccount, useAccount,sellBeginTime,sellEndTime, batchName,storeType, storeName,isExchange,PageIndex, PageSize, IsSelectAll);
         List<Map<String,Object>> cards = (List<Map<String, Object>>) result.get("cards");
         for(Map<String,Object> car : cards){
@@ -56,8 +51,6 @@ public class BaseEntityCardManager {
     }
 
     public Map<String,Object> Proc_Backstage_entity_card_storeIn_code_AccountStatistics(Integer eid,Integer accountId){
-        logger.info("[project:{}] [step:enter] [eid:{}] [accountId:{}]",
-                new Object[] { WebConfig.projectName,eid,accountId});
         return  entityCardDao.Proc_Backstage_entity_card_storeIn_code_AccountStatistics(eid, accountId);
     }
 
@@ -72,8 +65,6 @@ public class BaseEntityCardManager {
      * @return
      */
     public Map<String,Object> Proc_Backstage_integral_vip_select(Integer vipId,Integer eid,String eName,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-        logger.info("[project:{}] [step:enter] [vipId:{}] [eid:{}] [eName:{}] [PageIndex:{}] [PageSize:{}] [IsSelectAll:{}]",
-                new Object[] { WebConfig.projectName,vipId,eid,eid,eName,PageIndex,PageSize,IsSelectAll});
         return entityCardDao.Proc_Backstage_integral_vip_select(vipId, eid, eName, PageIndex, PageSize, IsSelectAll);
     }
 
@@ -120,8 +111,6 @@ public class BaseEntityCardManager {
     }
 
     public List<EclientDTO> selectEntityCardOrderBuyAccountByCardCode(String cardCode){
-        logger.info("[project:{}] [step:enter] [cardCode:{}]",
-                new Object[] { WebConfig.projectName,cardCode});
         return entityCardDao.selectEntityCardOrderBuyAccountByCardCode(cardCode);
     }
 

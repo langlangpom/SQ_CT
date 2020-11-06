@@ -1,10 +1,9 @@
 package com.evian.sqct.service;
 
+import com.alibaba.fastjson.JSONObject;
+import com.evian.sqct.response.ResultCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.alibaba.fastjson.JSONObject;
-import com.evian.sqct.util.Constants;
 
 /**
  * @date   2019年8月19日 下午2:01:05
@@ -22,13 +21,13 @@ public class BaseManager {
 			if("E00000".equals(code)) {
 				parseObject.put("code", 1);
 			}else {
-				parseObject.put("code", Constants.CUSTOM_ERROR);
+				parseObject.put("code", ResultCode.CUSTOM_ERROR.getCode());
 			}
 			webContent = parseObject.toJSONString();
 		} catch (Exception e) {
 			logger.error(webContent);
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
+			int code = ResultCode.CODE_ERROR_SYSTEM.getCode();
+			String message = ResultCode.CODE_ERROR_SYSTEM.getMessage();
 			JSONObject parMap = new JSONObject();
 			parMap.put("code", code);
 			parMap.put("message", message);
@@ -39,10 +38,11 @@ public class BaseManager {
 
 	protected String ERROR_SYSTEM(){
 		JSONObject parseObject = new JSONObject();
-		int code = Constants.CODE_ERROR_SYSTEM;
-		String message = Constants.getCodeValue(code);
+		int code = ResultCode.CODE_ERROR_SYSTEM.getCode();
+		String message = ResultCode.CODE_ERROR_SYSTEM.getMessage();
 		parseObject.put("code", code);
 		parseObject.put("message", message);
 		return parseObject.toJSONString();
 	}
+
 }

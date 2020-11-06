@@ -40,6 +40,8 @@ public class APPWxPayBean implements Serializable{
     private String notify_url;
     /** 交易类型*/
     private String trade_type;
+    /** 商品ID trade_type=NATIVE 时，此参数必传。*/
+    private String product_id;
     /** 预支付交易会话标识*/
     private String prepay_id;
     /** 支付密钥*/
@@ -175,6 +177,14 @@ public class APPWxPayBean implements Serializable{
         this.orderId = orderId;
     }
 
+    public String getProduct_id() {
+        return product_id;
+    }
+
+    public void setProduct_id(String product_id) {
+        this.product_id = product_id;
+    }
+
     @Override
     public String toString() {
         return "APPWxPayBean [" +
@@ -191,6 +201,7 @@ public class APPWxPayBean implements Serializable{
                 ", spbill_create_ip=" + spbill_create_ip +
                 ", notify_url=" + notify_url +
                 ", trade_type=" + trade_type +
+                ", product_id=" + product_id +
                 ", prepay_id=" + prepay_id +
                 ", appKey=" + appKey +
                 ", orderId=" + orderId +

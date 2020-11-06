@@ -1,6 +1,7 @@
 package com.evian.sqct.api;
 
-import com.evian.sqct.util.Constants;
+import com.evian.sqct.response.ResultCode;
+import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -26,8 +27,9 @@ public class BaseAction {
 			String[] ips = StringUtils.split(ip, ',');
 			if (ips != null) {
 				for (String tmpip : ips) {
-					if (StringUtils.isBlank(tmpip))
+					if (StringUtils.isBlank(tmpip)) {
 						continue;
+					}
 					tmpip = tmpip.trim();
 					if (isIPAddr(tmpip) && !tmpip.startsWith("10.")
 							&& !tmpip.startsWith("192.168.")
@@ -80,46 +82,63 @@ public class BaseAction {
 		resultMap.put("message", message);
 	}
 	
-	protected void setData(Map<String, Object> resultMap,Object data) {
+	protected Map<String, Object> setData(Map<String, Object> resultMap,Object data) {
 		resultMap.put("data", data);
+		return resultMap;
 	}
 
 	/**
 	 * 返回系统异常
 	 * @param resultMap
 	 */
-	protected void setERROR_SYSTEM(Map<String, Object> resultMap){
-		int code = Constants.CODE_ERROR_SYSTEM;
-		String message = Constants.getCodeValue(code);
+	protected Map<String, Object> setERROR_SYSTEM(Map<String, Object> resultMap){
+		int code = ResultCode.CODE_ERROR_SYSTEM.getCode();
+		String message = ResultCode.CODE_ERROR_SYSTEM.getMessage();
 		resultMap.put("code", code);
 		resultMap.put("message", message);
+		return resultMap;
 	}
 	/**
 	 * 返回参数错误
 	 * @param resultMap
 	 */
-	protected void setERROR_PARAM(Map<String, Object> resultMap){
-		int code = Constants.CODE_ERROR_PARAM;
-		String message = Constants.getCodeValue(code);
+	protected Map<String, Object> setERROR_PARAM(Map<String, Object> resultMap){
+		int code = ResultCode.CODE_ERROR_SYSTEM.getCode();
+		String message = ResultCode.CODE_ERROR_SYSTEM.getMessage();
 		resultMap.put("code", code);
 		resultMap.put("message", message);
+		return resultMap;
+	}
+	/**
+	 * 返回参数错误
+	 * @param resultMap
+	 */
+	protected String setERROR_PARAM(String resultString){
+		int code = ResultCode.CODE_ERROR_SYSTEM.getCode();
+		String message = ResultCode.CODE_ERROR_SYSTEM.getMessage();
+		JSONObject result = JSONObject.fromObject(resultString);
+		result.put("code", code);
+		result.put("message", message);
+		return result.toString();
 	}
 	/**
 	 * 返回150自定义错误
 	 * @param resultMap
 	 */
-	protected void setERROR_150(Map<String, Object> resultMap,String message){
-		int code = 150;
+	protected Map<String, Object> setERROR_150(Map<String, Object> resultMap,String message){
+		int code = ResultCode.CUSTOM_CODE;
 		resultMap.put("code", code);
 		resultMap.put("message", message);
+		return resultMap;
 	}
 	/**
 	 * 根据code返回错误
 	 * @param resultMap
 	 */
-	protected void setERROR_BY_CODE(Map<String, Object> resultMap,int code){
-		String message = Constants.getCodeValue(code);
+	protected Map<String, Object> setERROR_BY_CODE(Map<String, Object> resultMap,int code){
+		String message = ResultCode.CODE_ERROR_SYSTEM.getMessage();
 		resultMap.put("code", code);
 		resultMap.put("message", message);
+		return resultMap;
 	}
 }

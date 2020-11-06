@@ -1,11 +1,14 @@
 package com.evian.sqct.api.action;
 
+import com.evian.sqct.annotation.TokenNotVerify;
 import com.evian.sqct.api.BaseAction;
+import com.evian.sqct.bean.groupBuy.input.FindGroupBuyProductReqDTO;
+import com.evian.sqct.response.ResultCode;
+import com.evian.sqct.response.ResultVO;
 import com.evian.sqct.service.BaseGroupBuyManager;
 import com.evian.sqct.util.CallBackPar;
-import com.evian.sqct.util.Constants;
-import com.evian.sqct.util.DES.WebConfig;
 import com.evian.sqct.util.code.AddPri;
+import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.List;
@@ -37,54 +41,20 @@ public class GroupBuyAction  extends BaseAction {
 	private BaseGroupBuyManager baseGroupBuyManager;
 	
 	@RequestMapping("findGroupBuyOrder.action")
-	public Map<String, Object> findGroupBuyOrder(String beginTime,String endTime,Integer eid,String orderNo,String nickName,Boolean isCommander,Boolean isRefund,String account,Integer groupBuyState,String paymentNo,String orderGroup,String eName,String pname,String pcode,String sdkType,Integer shopId,Boolean isFilterEndOrder,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findGroupBuyOrder(String beginTime, String endTime, Integer eid, String orderNo, String nickName, Boolean isCommander, Boolean isRefund, String account, Integer groupBuyState, String paymentNo, String orderGroup, String eName, String pname, String pcode, String sdkType, Integer shopId, Boolean isFilterEndOrder, Integer sucMode, Integer minGroupBuyNum, Integer maxGroupBuyNum, Integer sortType, Integer clientId, Integer PageIndex, Integer PageSize, Boolean IsSelectAll) {
 		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Map<String, Object> result = baseGroupBuyManager.selectGroupBuyOrder(beginTime, endTime, eid, orderNo, nickName, isCommander, isRefund, account,
-					groupBuyState, paymentNo, orderGroup, eName, pname, pcode, sdkType, shopId, isFilterEndOrder, PageIndex, PageSize, IsSelectAll);
-			setData(parMap, result);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		Map<String, Object> result = baseGroupBuyManager.selectGroupBuyOrder(beginTime, endTime, eid, orderNo, nickName, isCommander, isRefund, account,
+				groupBuyState, paymentNo, orderGroup, eName, pname, pcode, sdkType, shopId, isFilterEndOrder,sucMode, minGroupBuyNum, maxGroupBuyNum, sortType,clientId, PageIndex, PageSize, IsSelectAll);
+
+		return new ResultVO(result);
 	}
 	
 	@RequestMapping("findGroupBuyProduct.action")
-	public Map<String, Object> findGroupBuyProduct(String beginTime,String endTime,Integer eid,Integer cityId,Integer groupBuyType,Boolean isEnabled,String eName,String shopName,Integer shopId,String pname,String pcode,Integer cid,String groupName,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
-		}
-		try {
-			Map<String, Object> result = baseGroupBuyManager.selectGroupBuyProducts(beginTime, endTime, eid, cityId, groupBuyType, isEnabled, eName, shopName, shopId, pname, pcode, cid,groupName, PageIndex, PageSize, IsSelectAll);
-			setData(parMap, result);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+	public ResultVO findGroupBuyProduct(@Valid FindGroupBuyProductReqDTO dto) {
+		Map<String, Object> result = baseGroupBuyManager.selectGroupBuyProducts(dto);
+		return new ResultVO(result);
 	}
 
 	/**
@@ -102,7 +72,23 @@ public class GroupBuyAction  extends BaseAction {
 	 */
 	@RequestMapping("saveGroupBuyOrder.action")
 	public String saveGroupBuyOrder(HttpServletRequest request, String identityCode, String openid, String orderJson, String appId,String body) throws Exception{
-		String getSysEnterPriseTemplate = baseGroupBuyManager.saveGroupBuyOrder(identityCode,openid,orderJson,appId,getIp(request),body);
+		JSONObject order = null;
+		try {
+			order = JSONObject.fromObject(orderJson);
+			if(order.containsKey("sucMode")){
+				int sucMode = order.getInt("sucMode");
+				if(sucMode!=1&&sucMode!=2){
+					order.put("sucMode",1);
+				}
+			}else{
+				order.put("sucMode",1);
+			}
+		} catch (Exception e) {
+			String parString = CallBackPar.getParString();
+			return setERROR_PARAM(parString);
+
+		}
+		String getSysEnterPriseTemplate = baseGroupBuyManager.saveGroupBuyOrder(identityCode,openid,order.toString(),appId,getIp(request),body);
 		return getSysEnterPriseTemplate;
 	}
 	
@@ -117,32 +103,16 @@ public class GroupBuyAction  extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findGroupBuyShareInfo.action")
-	public Map<String, Object> findGroupBuyShareInfo(Integer eid,Integer parent_gboId,Integer gboId,Integer xaId,Integer pid,String state) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findGroupBuyShareInfo(Integer eid,Integer parent_gboId,Integer gboId,Integer xaId,Integer pid,String state) {
 		if(eid==null||state==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Map<String, Object> result = baseGroupBuyManager.selectGroupBuyShareInfo(eid, parent_gboId, gboId,xaId,pid,state);
-			
-			setData(parMap, result);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		
-		return parMap;
+		Map<String, Object> result = baseGroupBuyManager.selectGroupBuyShareInfo(eid, parent_gboId, gboId,xaId,pid,state);
+		return new ResultVO(result);
 	}
 	
 	@RequestMapping("gzhGroupBuyOrderShareImgUrl/{paramWXWebSit}/{wxParaComponentAppID}/{appId}/{gboId}")
+	@TokenNotVerify
 	public void gzhGroupBuyOrderShareImgUrl(@PathVariable(value = "paramWXWebSit") String paramWXWebSit,
 			@PathVariable(value = "wxParaComponentAppID") String wxParaComponentAppID,
 			@PathVariable(value = "appId") String appId,
@@ -158,6 +128,7 @@ public class GroupBuyAction  extends BaseAction {
 		}
 	}
 	@RequestMapping("gzhGroupBuyProductShareImgUrl/{paramWXWebSit}/{wxParaComponentAppID}/{appId}/{xaId}/{pid}")
+	@TokenNotVerify
 	public void gzhGroupBuyProductShareImgUrl(@PathVariable(value = "paramWXWebSit") String paramWXWebSit,
 			@PathVariable(value = "wxParaComponentAppID") String wxParaComponentAppID,
 			@PathVariable(value = "appId") String appId,
@@ -174,6 +145,7 @@ public class GroupBuyAction  extends BaseAction {
 		}
 	}
 	@RequestMapping("xcxGroupBuyProductShareImgUrl")
+	@TokenNotVerify
 	public void xcxGroupBuyProductShareImgUrl(String state,Integer parent_gboId,Integer gboId,Integer xaId,Integer pid,String appId,HttpServletResponse response) {
 		
 		if(!StringUtils.isEmpty(state)) {
@@ -206,24 +178,19 @@ public class GroupBuyAction  extends BaseAction {
 	 * @return
 	 */
 	@RequestMapping("findClientNotPayGroupBuyOrder.action")
-	public Map<String, Object> findClientNotPayGroupBuyOrder(String identityCode, Integer eid, Integer xaId, Integer pid) {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findClientNotPayGroupBuyOrder(String identityCode, Integer eid, Integer xaId, Integer pid) {
 		if(eid==null||identityCode==null||xaId==null||pid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
 		List<Map<String, Object>> result = baseGroupBuyManager.selectClientNotPayGroupBuyOrder(identityCode, eid, xaId, pid);
 		if(result!=null&&result.size()>0){
-			setData(parMap, result.get(0));
+			return new ResultVO(result.get(0));
 		}else{
 			Map<String, Object> map = new HashMap<String, Object>();
 			map.put("gboId",0);
-			setData(parMap, map);
+			return new ResultVO(map);
 		}
 
-		return parMap;
+
 	}
 }

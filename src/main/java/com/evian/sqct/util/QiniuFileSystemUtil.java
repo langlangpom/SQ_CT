@@ -3,14 +3,14 @@
  */
 package com.evian.sqct.util;
 
-import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import com.qiniu.common.QiniuException;
 import com.qiniu.http.Response;
 import com.qiniu.storage.UploadManager;
 import com.qiniu.util.Auth;
+
+import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * @FileName: QiniuFileSystemUtil.java
@@ -115,4 +115,38 @@ public class QiniuFileSystemUtil {
         Response r = uploadManager.put(Base64.decode(file), filePath, token);
         return r.bodyString();
     }
+
+	/**
+	 * 上传图片
+	 *
+	 * @param imageTxt
+	 * @return {"hash":"Fpntdbb7yTG1yWMhikxPjgwBfHFw","key":"Upload/Client/Shear/images/20170330/201703301490870434207.png"}
+	 */
+	public static String uploadPic(byte[] file) throws QiniuException {
+		String date = new SimpleDateFormat("yyyyMMdd").format(new Date());
+		String time = String.format("%s%s", date, System.currentTimeMillis());
+		String filePath = String.format("Upload/Client/photos/images/%s/%s.jpg", date, time);
+		UploadManager uploadManager = new UploadManager();
+		Auth auth = Auth.create(QiniuConfig.accessKey, QiniuConfig.secretKey);
+		String token = auth.uploadToken(QiniuConfig.bucket);
+		Response r = uploadManager.put(file, filePath, token);
+		return r.bodyString();
+	}
+
+	/**
+	 * 上传图片
+	 *
+	 * @param imageTxt
+	 * @return {"hash":"Fpntdbb7yTG1yWMhikxPjgwBfHFw","key":"Upload/Client/Shear/images/20170330/201703301490870434207.png"}
+	 */
+	public static String uploadPic(byte[] file,String suffix) throws QiniuException {
+		String date = new SimpleDateFormat("yyyyMMdd").format(new Date());
+		String time = String.format("%s%s", date, System.currentTimeMillis());
+		String filePath = String.format(("Upload/Client/photos/images/%s/%s."+suffix), date, time);
+		UploadManager uploadManager = new UploadManager();
+		Auth auth = Auth.create(QiniuConfig.accessKey, QiniuConfig.secretKey);
+		String token = auth.uploadToken(QiniuConfig.bucket);
+		Response r = uploadManager.put(file, filePath, token);
+		return r.bodyString();
+	}
 }

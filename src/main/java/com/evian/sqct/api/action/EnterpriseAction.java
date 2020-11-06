@@ -1,21 +1,25 @@
 package com.evian.sqct.api.action;
 
 import com.evian.sqct.api.BaseAction;
+import com.evian.sqct.bean.enterprise.input.ProcBackstageZHDistributionCostsCashOutfromEvianSelectInputDTO;
+import com.evian.sqct.exception.ResultException;
+import com.evian.sqct.response.ResultCode;
+import com.evian.sqct.response.ResultVO;
 import com.evian.sqct.service.BaseEnterpriseManager;
-import com.evian.sqct.util.CallBackPar;
-import com.evian.sqct.util.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * ClassName:EnterpriseAction
  * Package:com.evian.sqct.api.action
- * Description:请为该功能做描述
+ * Description:企业Action
  *
  * @Date:2019/10/15 12:04
  * @Author:XHX
@@ -35,22 +39,43 @@ public class EnterpriseAction extends BaseAction {
      * @return
      */
     @RequestMapping("enterpriseMenuApply.action")
-    public Map<String, Object> enterpriseMenuApply(Integer eid, Integer menuId, String applicant,String shuiQuServer) {
-        Map<String, Object> parMap = CallBackPar.getParMap();
+    public ResultVO enterpriseMenuApply(Integer eid, Integer menuId, String applicant, String shuiQuServer) {
         if(eid==null||menuId==null||applicant==null||shuiQuServer==null) {
-            int code = Constants.CODE_ERROR_PARAM;
-            String message = Constants.getCodeValue(code);
-            parMap.put("code", code);
-            parMap.put("message", message);
-            return parMap;
+            return new ResultVO(ResultCode.CODE_ERROR_PARAM);
         }
 
         String cuidan = baseEnterpriseManager.Proc_Backstage_appMerchant_account_enterprise_menu_apply(eid, menuId, applicant, shuiQuServer);
         if(!"1".equals(cuidan)){
-            setCode(parMap, 150);
-            setMessage(parMap, cuidan);
+            throw new ResultException(cuidan);
         }
 
-        return parMap;
+        return new ResultVO();
+    }
+
+    /**
+     * 214.水叮咚提现管理
+     * @param dto
+     * @return
+     */
+    @RequestMapping("SDDWithdrawDeposit.action")
+    public Map<String,Object> SDDWithdrawDeposit(ProcBackstageZHDistributionCostsCashOutfromEvianSelectInputDTO dto){
+        return baseEnterpriseManager.Proc_Backstage_ZH_DistributionCosts_CashOut_fromEvian_select(dto);
+    }
+
+
+    /**
+     * 215.提现汇总日志
+     * @param dto
+     * @return
+     */
+    @RequestMapping("SDDWithdrawDepositLog.action")
+    public ResultVO SDDWithdrawDepositLog(Integer wangLaiId){
+        if(wangLaiId==null){
+            return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+        }
+        List<Map<String, Object>> maps = baseEnterpriseManager.selectEEarningsSubtractWanlaiWithdrawLogByWangLaiId(wangLaiId);
+        Map<String,Object> result = new HashMap<>(1);
+        result.put("logs",maps);
+        return new ResultVO(result);
     }
 }

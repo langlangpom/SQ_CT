@@ -3,26 +3,49 @@ package com.evian.sqct;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.evian.sqct.bean.order.EAppMerchantOrderSend;
-import com.evian.sqct.bean.order.Order;
-import com.evian.sqct.bean.order.OrderDetail;
-import com.evian.sqct.bean.order.OrderProductInfo;
+import com.evian.sqct.api.action.UserAction;
+import com.evian.sqct.bean.enterprise.EEntererpriseConfig;
+import com.evian.sqct.bean.enterprise.EWeixinSendMessageTemplateEnterprise;
+import com.evian.sqct.bean.enterprise.input.ProcBackstageZHDistributionCostsCashOutfromEvianSelectInputDTO;
+import com.evian.sqct.bean.jwt.TokenDTO;
+import com.evian.sqct.bean.order.*;
+import com.evian.sqct.bean.order.request.ProcBackstageOrderPaymentSelectReqDTO;
+import com.evian.sqct.bean.pay.PayOnDeliveryByWeCathReqDTO;
+import com.evian.sqct.bean.product.input.ProcBackstageProductSpecsRelevantSelectReqDTO;
+import com.evian.sqct.bean.shop.inputDTO.ProcBackstageShopSelectDTO;
 import com.evian.sqct.bean.sys.EEnterpriseWechatliteapp;
+import com.evian.sqct.bean.sys.SpSprocColumns90;
+import com.evian.sqct.bean.sys.SysParamModel;
+import com.evian.sqct.bean.thirdParty.input.ProcBackstageClientOperatMakeReqDTO;
 import com.evian.sqct.bean.user.*;
 import com.evian.sqct.bean.util.JPushShangHuModel;
 import com.evian.sqct.bean.util.WXHB;
 import com.evian.sqct.bean.vendor.*;
+import com.evian.sqct.bean.vendor.input.ProcXhxVendorStatusImageRecordSelect;
+import com.evian.sqct.bean.vendor.input.VendorDoorStatisticsDTO;
+import com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyProvinceRepDTO;
 import com.evian.sqct.dao.*;
+import com.evian.sqct.dao.impl.GoodsShopCar;
+import com.evian.sqct.dao.mybatis.primaryDataSource.dao.IThirdPartyMapperDao;
+import com.evian.sqct.response.ResultVO;
 import com.evian.sqct.service.*;
-import com.evian.sqct.util.QiniuConfig;
-import com.evian.sqct.util.QiniuFileSystemUtil;
-import com.evian.sqct.util.ResultSetToBeanHelper;
-import com.evian.sqct.util.XmlStringUtil;
-import com.evian.sqct.wxHB.WxPayHB;
+import com.evian.sqct.util.*;
 import com.evian.sqct.wxPay.APPWxPayBean;
-import com.evian.sqct.wxPay.APPWxPayUtils;
+import com.evian.sqct.wxPay.EnterprisePayByLooseChangeBean;
 import com.qiniu.common.QiniuException;
+import com.wechat.pay.contrib.apache.httpclient.WechatPayHttpClientBuilder;
+import com.wechat.pay.contrib.apache.httpclient.WechatPayUploadHttpPost;
+import com.wechat.pay.contrib.apache.httpclient.auth.AutoUpdateCertificatesVerifier;
+import com.wechat.pay.contrib.apache.httpclient.auth.PrivateKeySigner;
+import com.wechat.pay.contrib.apache.httpclient.auth.WechatPay2Credentials;
+import com.wechat.pay.contrib.apache.httpclient.auth.WechatPay2Validator;
+import com.wechat.pay.contrib.apache.httpclient.util.PemUtil;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -36,11 +59,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
+import java.io.*;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.security.PrivateKey;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+
+import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -48,9 +76,6 @@ public class SqCtApplicationTests {
 	
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	
-	@Autowired
-	WxPayHB wxph;
-
 	@Autowired
 	private IUserDao userDao;
 	
@@ -62,6 +87,9 @@ public class SqCtApplicationTests {
 	
 	@Autowired
 	private IShopDao shopDao;
+
+	@Autowired
+	private IProductDao productDao;
 	
 	@Autowired
 	private IGroupBuyDao groupBuyDao;
@@ -71,6 +99,9 @@ public class SqCtApplicationTests {
 
 	@Autowired
 	private IEntityCardDao entityCardDao;
+
+	@Autowired
+	private IEnterpriseDao enterpriseDao;
 	
 	@Autowired
 	private BaseVendorManager vendorManager;
@@ -100,13 +131,46 @@ public class SqCtApplicationTests {
 	@Autowired
 	private BaseLedManager ledManager;
 
+
 	@Autowired
 	private Environment env;
+
+	@Autowired
+	private WxPayService wxPayService;
+
+	@Autowired
+	private ICacheDao cacheDao;
+
+	@Autowired
+	private ISystemDao systemDao;
+
+	@Autowired
+	private BasePayManager basePayManager;
+
+	@Autowired
+	private IBaseDao baseDao;
+
+	@Autowired
+	private BaseAppletLiveStreamingManager appletLiveStreamingManager;
+
+	@Autowired
+	private BaseMessageManager messageManager;
+
+	@Autowired
+	private UserAction userAction;
+
 
 
 	@Autowired
 	@Qualifier("primaryJdbcTemplate")
 	private JdbcTemplate jdbcTemplate;
+
+
+	@Autowired
+	private IThirdPartyMapperDao thirdPartyMapperDao;
+
+	@Autowired
+	private IThirdPartyDao thirdPartyDao;
 	
 	@Test
 	public void contextLoads() {
@@ -116,6 +180,26 @@ public class SqCtApplicationTests {
 	@Test
 	public void test001() {
 		System.out.println(vendorDao.getNowDbName());
+	}
+
+	@Test
+	public void getAccessToken(){
+//		passWord=F59BD65F7EDAFB087A81D4DCA06C4910&appver=1.4.1&access_token=&sign=CD8F6F5BE2805EC160F3509807DB2A43&equipment=ANDROID&account=18598251875&timestamp=1595812488047
+		String account = "18598251875";
+		List<Map<String, Object>> maps = userDao.tempLogin(account);
+		if(maps.size()>0){
+			BackLoginReqDTO dto = new BackLoginReqDTO();
+			dto.setAccount(account);
+			dto.setPassWord((String)maps.get(0).get("userPwd"));
+			dto.setPlatformId((Integer)maps.get(0).get("platformId"));
+			dto.setRegeditId((String)maps.get(0).get("regeditId"));
+			dto.setSourceId((Integer)maps.get(0).get("sourceId"));
+			ResultVO<Map<String,Object>> resultVO = userAction.backLogin(null, null, dto);
+			Map<String, Object> data = resultVO.getData();
+			TokenDTO token = (TokenDTO) data.get("token");
+			String access_token = token.getAccess_token();
+			System.out.println("Authorization:Bearer "+access_token);
+		}
 	}
 	
 	@Test
@@ -204,7 +288,7 @@ public class SqCtApplicationTests {
 		System.out.println(upResult);
 	}
 	
-//	@Test
+	@Test
 	public void test05() throws Exception{
 		WXHB w = new WXHB();
 		UUID uuid=UUID.randomUUID();
@@ -221,7 +305,7 @@ public class SqCtApplicationTests {
 		w.setMchId("1507172651");
 		w.setWxappid("wx1dbcf02571e7beca");
 		w.setSendName("私包"); // 商户名称
-		w.setReOpenid("oMWdZ1Kavat9j7bgfHoiZ9DxE6yo"); // 用户openid
+		w.setReOpenid("oMWdZ1FV3t7f9Nw4fgumwzIqYFhY"); // 用户openid
 		w.setTotalAmount("100"); // 付款金额
 		w.setTotalNum("1"); // 红包发放总人数
 //		w.setAmt_type("ALL_RAND"); // 红包金额设置方式 
@@ -230,7 +314,34 @@ public class SqCtApplicationTests {
 		w.setActName("测试"); // 活动名称
 		w.setRemark("备注不能空着"); // 备注
 		w.setAppKey("sdhkjlbBSKADLSJCBSAUR3987YFR93YR");
-		String pay = wxph.sendredpack(w);
+		String pay = wxPayService.sendredpack(w);
+		System.out.println(pay);
+	}
+	@Test
+	public void test005() throws Exception{
+//		baseOrderManager.qrcodeVisitReply("1316186301");
+		EnterprisePayByLooseChangeBean w = new EnterprisePayByLooseChangeBean();
+		UUID uuid=UUID.randomUUID();
+	    String str = uuid.toString();
+	    String uuidStr=str.replace("-", "");
+
+		Random ran=new Random();
+		int a=ran.nextInt(99999999);
+		int b=ran.nextInt(99999999);
+		long l=a*10000000L+b;
+//		String t = "845431986481718";
+		String num=String.valueOf(l);
+		w.setMch_appid("wx1dbcf02571e7beca");
+		w.setMchid("1507172651");
+		w.setNonce_str(uuidStr);
+		w.setPartner_trade_no(num);
+		w.setOpenid("oMWdZ1FV3t7f9Nw4fgumwzIqYFhY");
+		w.setCheck_name("NO_CHECK");
+		w.setAmount("100");
+		w.setDesc("测试第一次");
+		w.setSpbill_create_ip("183.238.231.83");
+		w.setAppKey("sdhkjlbBSKADLSJCBSAUR3987YFR93YR");
+		String pay = wxPayService.enterprisePayByLooseChange(w);
 		System.out.println(pay);
 	}
 	
@@ -287,7 +398,7 @@ public class SqCtApplicationTests {
 				w.setActName("水趣驿站欢乐送");
 				w.setRemark("红包发送");
 				w.setAppKey(map.get("redpackMoney").toString());
-				String sendredpack = wxph.sendredpack(w);
+				String sendredpack = wxPayService.sendredpack(w);
 				Map<String, Object> sendredpackMap = new HashMap<String, Object>();
 				try {
 					sendredpackMap = XmlStringUtil.stringToXMLParse(sendredpack);
@@ -321,16 +432,14 @@ public class SqCtApplicationTests {
 	
 	@Test
 	public void test15() {
-		Map<String, Object> vendorSelectOrder = vendorManager.vendorSelectOrder(null, null, null, null, null, null, null, null, null, null, null, null,null, null, null, null,null);
-//		System.out.println(vendorSelectOrder);
+		String pids = "12182,12180,12181,2000,2000,13235,1504,1504,11128,7567,1992,10437,10431,10429,45,4590,4591,5936,5937,7839,2003,2003,10313,1993,8750,8751,9538,896,896,1996,1996,1998,1998,3887,1999,1999,4582,2041,5264,1077,1077,1424,1424,3169,8569,3920,8752,10311,10311,2031,12179,8618,10191,1293,1079,42,1525,1525,987,22";
+		System.out.println(pids.length());
+		Map<Integer, Map<String, Object>> batchProductStock = productDao.getBatchProductStock(1, pids);
+		System.out.println(batchProductStock);
 	}
+
 	
 	@Test
-	public void test17() {
-		vendorDao.replenishmentStatistics(1, "2019-01-11 00:00:00", "2019-01-11 00:00:00", "13372821182", null, null);
-	}
-	
-//	@Test
 	public void test16() throws Exception {
 		WXHB w = new WXHB();
 		UUID uuid=UUID.randomUUID();
@@ -348,7 +457,7 @@ public class SqCtApplicationTests {
 		w.setWxappid("wx1dbcf02571e7beca");
 		w.setBill_type("MCHT"); // MCHT:通过商户订单号获取红包信息。
 		w.setAppKey("sdhkjlbBSKADLSJCBSAUR3987YFR93YR");
-		String pay = wxph.gethbinfo(w);
+		String pay = wxPayService.gethbinfo(w);
 		System.out.println(pay);
 	}
 	
@@ -357,11 +466,21 @@ public class SqCtApplicationTests {
 		/*List<Map<String, Object>> vendorReplenishmentPlanSelect = vendorDao.vendorReplenishmentPlanSelect(1,null, null, 1530, null,null, null);
 		System.out.println(vendorReplenishmentPlanSelect);*/
 		
-		List<Map<String, Object>> vendorReplenishmentPlanSelect2 = vendorManager.vendorReplenishmentPlanSelect(1,null, null, 1530, null,null, null);
-		for (Map<String, Object> map : vendorReplenishmentPlanSelect2) {
-			
-			System.out.println(map);
-		}
+		List<Map<String, Object>> vendorReplenishmentPlanSelect2 = vendorManager.vendorReplenishmentPlanSelect(1,null, null, 1542, null,null, null);
+		Map<String,Object> tt = new HashMap<>();
+		tt.put("data",vendorReplenishmentPlanSelect2);
+		JSONObject jsonObject = new JSONObject(tt);
+		System.out.println(jsonObject);
+	}
+
+	@Test
+	public void test18_v2() {
+
+		List<Map<String, Object>> vendorReplenishmentPlanSelect2 = vendorDao.vendorReplenishmentPlanSelect(1,0, null, null, null,null, null);
+		Map<String,Object> tt = new HashMap<>();
+		tt.put("data",vendorReplenishmentPlanSelect2);
+		JSONObject jsonObject = new JSONObject(tt);
+		System.out.println(jsonObject);
 	}
 	
 	@Test
@@ -384,7 +503,8 @@ public class SqCtApplicationTests {
 		json2.put("productId", 6);
 		json2.put("planNum", 10);
 		jsonArray.add(json2);
-		Integer insertVendorReplenishmentPlan = vendorManager.insertVendorReplenishmentPlan(null ,2,13, "测试", false, "xhx", jsonArray);
+		Integer warningNum = null;
+		Integer insertVendorReplenishmentPlan = vendorManager.insertVendorReplenishmentPlan(null ,2,13, "测试", false, "xhx", warningNum, jsonArray);
 		System.out.println("--------- = "+insertVendorReplenishmentPlan);
 	}
 	
@@ -478,7 +598,7 @@ public class SqCtApplicationTests {
 	
 	@Test
 	public void test33() {
-		List<VendorProductReplenishmentClass> selectVendorProductReplenishmentClass = vendorDao.selectVendorProductReplenishmentClass();
+		List<VendorProductReplenishmentClass> selectVendorProductReplenishmentClass = vendorDao.selectVendorProductReplenishmentClass(1);
 		System.out.println(selectVendorProductReplenishmentClass);
 	}
 	
@@ -557,7 +677,7 @@ public class SqCtApplicationTests {
 	
 	@Test
 	public void test42() {
-		Map<String, Object> s = orderDao.Proc_Backstage_order_payment_select(7355);
+		Map<String, Object> s = orderDao.Proc_Backstage_order_payment_select(new ProcBackstageOrderPaymentSelectReqDTO(7355));
 		System.out.println(s);
 	}
 	
@@ -624,7 +744,7 @@ public class SqCtApplicationTests {
 
 	@Test
 	public void test50() throws Exception {
-		List<Map<String, Object>> commodityManage = shopDao.commodityManage(1, 1);
+		List<Map<String, Object>> commodityManage = baseShopManager.commodityManage(1, 1);
 		
 		LinkedHashMap<Integer, Map<String,Object>> classDic=new LinkedHashMap<Integer, Map<String,Object>>();
 		
@@ -679,8 +799,13 @@ public class SqCtApplicationTests {
 	
 	@Test
 	public void test54() throws Exception {
-		List<StaffDTO> proc_Backstage_staff_select = baseUserManager.Proc_Backstage_staff_select(1, "松岗9店", null,null, null, null);
+		List<StaffDTO> proc_Backstage_staff_select = baseUserManager.Proc_Backstage_staff_select(1, null, 1,null, null, null);
 		System.out.println(proc_Backstage_staff_select);
+	}
+	@Test
+	public void test054() throws Exception {
+		EAppMerchantAccountEnterpriseRole eAppMerchantAccountEnterpriseRole = userDao.selectEAppMerchantAccountEnterpriseRoleByAccountId(3885);
+		System.out.println(eAppMerchantAccountEnterpriseRole);
 	}
 	
 	@Test
@@ -694,9 +819,10 @@ public class SqCtApplicationTests {
 	
 	@Test
 	public void test56() throws Exception {
-		
-		Map<String, Object> selectGroupBuyOrder = groupBuyManager.selectGroupBuyOrder(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 1,null, 1, 20, true);
-		System.out.println(selectGroupBuyOrder);
+		//[beginTime:null] [endTime:null] [eid:1] [orderNo:null] [nickName:null] [isCommander:true] [isRefund:null] [account:null] [groupBuyState:2] [paymentNo:null] [orderGroup:null] [eName:null] [pname:null] [pcode:null] [sdkType:null] [shopId:null] [isFilterEndOrder:true] [sucMode:null] [minGroupBuyNum:null] [maxGroupBuyNum:null] [sortType:0] [PageIndex:20] [PageSize:false] [IsSelectAll:{}]
+		Map<String, Object> selectGroupBuyOrder = groupBuyManager.selectGroupBuyOrder(null, null, 1, null, null, true, null, null, 2, null, null, null, null, null, null, 1,null, null,null,null,null,null,1, 20, false);
+		JSONObject jsonObject = new JSONObject(selectGroupBuyOrder);
+		System.out.println(jsonObject);
 	}
 	
 	@Test
@@ -712,15 +838,16 @@ public class SqCtApplicationTests {
 	}
 	@Test
 	public void test59() throws Exception {
+		// [accountId:3484] [order:Order [orderId=null, shopId=1, beginTime=2020-05-11 00:00:00, endTime=2030-01-01 00:00:00, eid=1, orderNo=null, status=-99, sdkType=null, ifMutual=null, ifreply=null, in_come=null, account=null, shopName=null, confirm_take=null, eName=null, PageIndex=1, PageSize=10, IsSelectAll=null, payMode=null, linePaySuceed=null, has_return=null, sourceGroup=null, sendAddress=null, deliverMan=null, isFreight=null, phone=null]] [isTicket:null]
 		Order order = new Order();
 		order.setEid(1);
-		order.setShopId(2);
+		order.setShopId(1);
 		order.setEndTime("2030-01-01 00:00:00");
-		order.setBeginTime("2019-09-24 00:00:00");
-		order.setStatus(3);
+		order.setBeginTime("2020-05-11 00:00:00");
+		order.setStatus(null);
 		order.setPageIndex(1);
 		order.setPageSize(10);
-		Map<String, Object> orderByShopId_v3 = baseOrderManager.findOrderByShopId_v3(1542,order,false);
+		Map<String, Object> orderByShopId_v3 = baseOrderManager.findOrderByShopId_v3(3484,order,null);
 		System.out.println(orderByShopId_v3);
 	}
 
@@ -749,13 +876,20 @@ public class SqCtApplicationTests {
 		String message = "看看就好";
 		Integer type = 10000;
 		String sendTime = "2019-09-30 11:36:00";
-		Integer platform = 2;
-		String registerId = "18171adc035986d197e";
+		Integer platform = 1;
+		String registerId = "0862741031300185300007667700CN01";
 		String jpushTag = "";
 		String voiceContent = "来，左边跟我一起画个龙，右边画一道彩虹，走起，左边跟我一起画彩虹，右边再画个龙";
-		JPushShangHuModel model = new JPushShangHuModel(xid, title, message, type, sendTime, platform, registerId, jpushTag, voiceContent);
+		Integer platformId = 2;
+		JPushShangHuModel model = new JPushShangHuModel(xid, title, message, type, sendTime, platform, registerId, jpushTag, voiceContent,platformId);
 		jpushShangHuService.pushMsg(model);
-
+	}
+	@Test
+	public void test62_3() throws Exception {
+//		Integer accountId,String regeditId,Integer sourceId,Integer platformId
+//				[accountId:1821] [regeditId:0862741031300185300007667700CN01] [sourceId:1] [platformId:2]
+		Integer integer = baseUserManager.updateAppMerchantJpush(1821, "0862741031300185300007667700CN01", 1, 2);
+		System.out.println(integer);
 	}
 
 
@@ -857,7 +991,7 @@ public class SqCtApplicationTests {
 		w.setNotify_url("https://weixin.shuiqoo.cn/weixin/notifyUrl"); // 红包祝福语
 		w.setTrade_type("APP"); // Ip地址
 		w.setAppKey("SQces568jkldjf8weknNDfy5uhvFNjje");
-		String pay = new APPWxPayUtils().pay(w);
+		String pay = wxPayService.pay(w);
 		System.out.println(pay);
 	}
 
@@ -870,6 +1004,590 @@ public class SqCtApplicationTests {
 		Map<String, Object> stringObjectMap = orderDao.Proc_Backstage_order_detail_eticketTuiKe_select(null, null, null, null, null, null, null, null, null,null, null, null);
 		System.out.println(stringObjectMap);
 	}
+	@Test
+	public void test75(){
+		String s = vendorManager.Proc_Backstage_vendor_AppCustomer_DoorReplenishment_Stand(1, 23, 934, 1, 0, 0, "18522003016", 1,"","");
+		System.out.println(s);
+	}
+	@Test
+	public void test76(){
+		String sql ="select * from e_weixin_reply";
+		List<Map<String, Object>> maps = jdbcTemplate.queryForList(sql);
+		Map<String, Object> stringObjectMap = maps.get(maps.size() - 1);
+		JSONObject a =new JSONObject(stringObjectMap);
+		System.out.println(a);
+	}
+
+	@Test
+	public void test77(){
+		Map<String, Object> df = vendorManager.vendorMainboardOrProductIdBuySelect(1, null, null, null, 1, null, null, null, null, null, "松岗9店", null, false, null, null, null, null, null, false);
+		JSONObject jsonObject = new JSONObject(df);
+		System.out.println(jsonObject);
+	}
+	@Test
+	public void test78(){
+		List<Map<String, Object>> maps = vendorDao.Proc_Backstage_vendor_replenishment_type_select(1);
+		System.out.println(maps);
+	}
+	@Test
+	public void test79(){
+		List<Map<String, Object>> maps = vendorDao.Proc_Backstage_vendor_replenishment_type_select_statistics(1, null, null, null, null, null, null, null, null, null, null, null);
+		System.out.println(maps);
+	}
+
+	@Test
+	public void test80(){
+		baseUserManager.updateNotSubscribeUserHeadimgurl();
+	}
+
+	@Test
+	public void test81(){
+		ledManager.downAdvertingToVendor(517,"10280109", "现在是十七点二十二分零三秒", "R", 10, 20, 1);
+	}
+
+	@Test
+	public void test82(){
+		Map<String, Object> stringObjectMap = vendorManager.selectVendorCouponToWechatActivityByUser(1, "oGLfUwE5ZHCB_d5tWdXaxZ-MOq_k", null);
+		System.out.println(stringObjectMap);
+	}
+
+	@Test
+	public void test83(){
+		Map<String, Object> stringObjectMap = shopDao.PROC_ZH_DisCosts_SELECT_ShopAccount(1, 1);
+		System.out.println(stringObjectMap);
+	}
+	@Test
+	public void test84() throws Exception{
+		// [eid:1] [clientId:901] [shopId:1] [account:18718000629] [cashOut:1.0] [remark:] [appId:wx57c89676f397cfd1] [openId:oGLfUwH4kM0lej4QTJns6AeKopzA] [ip:192.168.99.241]
+		baseShopManager.withdrawalOfDeliveryFee(1, 901, 1, "18718000629", 1.0, "", "wx57c89676f397cfd1", "oGLfUwH4kM0lej4QTJns6AeKopzA", "192.168.99.241",null);
+
+	}
+	@Test
+	public void test85() throws Exception{
+		// [eid:1] [clientId:901] [shopId:1] [account:18718000629] [cashOut:1.0] [remark:] [appId:wx57c89676f397cfd1] [openId:oGLfUwH4kM0lej4QTJns6AeKopzA] [ip:192.168.99.241]
+		List<Map<String, Object>> maps = baseShopManager.withdrawDepositOrderSelect(1, 2, "2020-05-13", "2020-05-13 23:59:59", "", 1, 10);
+		Map<String, Object> m = new HashMap<>();
+		m.put("sss",maps);
+		JSONObject jsonObject = new JSONObject(m);
+		System.out.println(jsonObject);
+
+	}
+
+	@Test
+	public void test86() throws Exception{
+		// [clientId:EAPyCVTB78jcDd+sbetDx1+FOxVGLkWr46uutPj0bV4wOr1ebIylnbzocFTXrL7xH9h4I55MxzIZC60IGAdZYxkRH34BkzADtdwZnuuTAeY=] [eid:1] [endDate:null] [authorizer_appid:wxe96781856240e981]
+		String myLiteAppEarningInfo = baseUserManager.getShopClientRegeditReport("EAPyCVTB78jcDd+sbetDx1+FOxVGLkWr46uutPj0bV4wOr1ebIylnbzocFTXrL7xH9h4I55MxzIZC60IGAdZYxkRH34BkzADtdwZnuuTAeY=", 1, null,"wxe96781856240e981");
+		System.out.println(myLiteAppEarningInfo);
+
+	}
+	@Test
+	public void test87(){
+		// [sendAccountId=0, managerAccountId=1814, orderSend=[{"eid":1,"ShopID":369,"orderID":23986}], sendStatus=-4, remark=W, creater=岛主, DataSource=APP]]
+		JSONArray orderSend = new JSONArray();
+		JSONObject r = new JSONObject();
+		r.put("orderID",23986);
+		r.put("eid",1);
+		r.put("ShopID",369);
+		orderSend.add(r);
+
+		ProcAppOrderSendSaveUPDTO procAppOrderSendSaveUPDTO =
+				new ProcAppOrderSendSaveUPDTO(0,1814,orderSend.toString(),-4,"W","岛主","APP");
+
+		String s = baseOrderManager.appOrderSendSaveUP(procAppOrderSendSaveUPDTO);
+		System.out.println(s);
+	}
+
+	@Test
+	public void test88(){
+		JSONArray orderSend = new JSONArray();
+		JSONObject r = new JSONObject();
+		r.put("orderID",23430);
+		r.put("eid",1);
+		r.put("ShopID",1);
+		orderSend.add(r);
 
 
+
+		ProcAppOrderSendSaveUPDTO procAppOrderSendSaveUPDTO = new ProcAppOrderSendSaveUPDTO(0,0,orderSend.toString(),-4,"ddd","xhx","测试");
+
+		String s = baseOrderManager.appOrderSendSaveUPXML(procAppOrderSendSaveUPDTO);
+		System.out.println(s);
+
+	}
+
+
+	@Test
+	public void test91(){
+		Map<String, Object> stringObjectMap = entityCardDao.Proc_DisPark_Get_OrderNo(13, 1);
+		System.out.println(stringObjectMap);
+	}
+
+	@Test
+	public void test92(){
+		Map<String, Object> stringObjectMap = enterpriseDao.Proc_Backstage_enterprise_config_select( 1,"59");
+		System.out.println(stringObjectMap);
+	}
+	@Test
+	public void test93(){
+		// [aop记录 ent:cancellationOfOrder] [orderId:23970] [userId:856] [eid:1] [cancelReason:客户不在家] [e_order_detail_ID:[28467]]
+		// [orderId:23890] [userId:901] [eid:1] [cancelReason:客户不在家] [e_order_detail_ID:null]
+		JSONArray r = new JSONArray();
+		r.add(28469);
+		baseOrderManager.cancellationOfOrder(23971,856,1,"家中无人",r,null);
+	}
+	@Test
+	public void test93_v2(){
+		List<OrderProductInfo> orderProductInfos = orderDao.selectOrderProductInfo(23970, 1);
+		System.out.println(orderProductInfos);
+	}
+	@Test
+	public void test93_2(){
+
+		// [orderId:23890] [userId:901] [eid:1] [cancelReason:客户不在家] [e_order_detail_ID:null]
+		OrderModel orderModel = orderDao.selectOrderByOrderId(23890);
+		System.out.println(orderModel);
+	}
+	@Test
+	public void test94(){
+		// [orderId:2967775] [userId:5984] [eid:1] [cancelReason:家中无人] [e_order_detail_ID:null]
+		boolean b = userDao.setSMSFindPwd_v2("cellPhone", "msgCode", "npwd");
+		System.out.println(b);
+	}
+	@Test
+	public void test95(){
+		Map<String, Object> user = baseUserManager.userLogin_v2("18718000629", "EA983C0D57E04E8D214F63E1228CBF15");
+		JSONObject jsonObject = new JSONObject(user);
+		System.out.println(jsonObject);
+	}
+	@Test
+	public void test96(){
+		List<AppFeedbackDTO> appFeedbackDTOS = baseUserManager.selectAppFeedback(1, 1);
+		Map<String,Object> user = new HashMap<>();
+		user.put("app",appFeedbackDTOS);
+		JSONObject jsonObject = new JSONObject(user);
+		System.out.println(jsonObject);
+	}
+
+	@Test
+	public void test97(){
+		EEntererpriseConfig e = enterpriseDao.selectEntererpriseConfig(1, 25);
+		System.out.println(e);
+	}
+
+	@Test
+	public void test98(){
+		List<StaffDTO> staffDTOS = userDao.Proc_Backstage_staff_select(null, null, 1, null, null,null, null,null);
+		System.out.println(staffDTOS);
+	}
+
+	@Test
+	public void test99(){
+		String key = "SQSHTest";
+		long size = 0;
+		TokenDTO t1 = new TokenDTO("vvvv", "ccc");
+		TokenDTO t2 = new TokenDTO("xxxx", "nnnnnn");
+		List<TokenDTO> tt = new ArrayList<>();
+		cacheDao.lpush(key,tt);
+		/*long size = cacheDao.lpush(key, t1);
+		System.out.println(size);*/
+		size = cacheDao.llen(key);
+		System.out.println(size);
+		/*size = cacheDao.lpush(key, t2);
+		System.out.println(size);*/
+		Object o = cacheDao.rPop(key);
+		System.out.println(o);
+		size = cacheDao.llen(key);
+		System.out.println(size);
+
+		/*String key2 = "gggggggg";
+		cacheDao.set(key2,"3333333333333");
+		Object o1 = cacheDao.get(key2);
+		System.out.println(o1);*/
+	}
+
+	@Test
+	public void test100(){
+		String key = "SQSHTest";
+		TokenDTO t1 = new TokenDTO("vvvv", "ccc");
+		TokenDTO t2 = new TokenDTO("xxxx", "nnnnnn");
+		List<TokenDTO> tt = new ArrayList<>();
+		tt.add(t1);
+		tt.add(t2);
+		cacheDao.setExpireSeconds(key,tt,1000);
+		List<TokenDTO> o = (List<TokenDTO>) cacheDao.get(key);
+		System.out.println(o);
+	}
+
+	@Test
+	public void test101(){
+		List<OrderHistorySixAccount> orderHistorySixAccounts = orderDao.selectOrderHistorySixAccountByOrderId(23751);
+		System.out.println(orderHistorySixAccounts);
+
+	}
+	@Test
+	public void test102() throws Exception {
+		TuiyaPayDTO dto = new TuiyaPayDTO();
+		dto.setEid(1);
+		dto.setIp("10.5.415.38");
+		dto.setState(1);
+		dto.setTotal(6.6);
+		dto.setTransferOperator("xhx");
+		dto.setTransferRemark("测试");
+		dto.setTuiyaOrderId(23751);
+		basePayManager.tuiyaPay(dto);
+
+	}
+
+	@Test
+	public void sp_sproc_columns_90(){
+		String storedProcedureName = "PROC_APP_orderSend_saveUP";
+//		String storedProcedureName = "Proc_Backstage_client_pledge_tuiya_select";
+		List<SpSprocColumns90> spSprocColumns90s = systemDao.sp_sproc_columns_90(storedProcedureName);
+		Map<String,Object> map = new HashMap<>();
+		map.put("tt",spSprocColumns90s);
+		JSONObject d = new JSONObject(map);
+		System.out.println(d);
+	}
+	@Test
+	public void test103(){
+		VendorReplenishmentPartSelectDTO dto = new VendorReplenishmentPartSelectDTO();
+		dto.setEid(1);
+		List<StaffDTO> staffDTOS = baseUserManager.selectVendorReplenishmentPart(dto);
+
+	}
+
+	@Test
+	public void test104(){
+		Object o = baseDao.agencyDB("Proc_Backstage_client_pledge_tuiya_select", null);
+		System.out.println(o);
+	}
+
+	@Test
+	public void test104_v2(){
+		List<SpSprocColumns90> t = systemDao.sp_sproc_columns_90("Proc_Backstage_client_pledge_tuiya_select");
+		System.out.println(t);
+	}
+
+	@Test
+	public void test105(){
+		ProcBackstageClientPledgeTuiyaSelectDTO dto = new ProcBackstageClientPledgeTuiyaSelectDTO();
+		dto.setEid(1);
+		dto.setIsAxceedOneYear(true);
+		Map<String, Object> stringObjectMap = orderDao.Proc_Backstage_client_pledge_tuiya_select(dto);
+		System.out.println(stringObjectMap);
+	}
+
+	@Test
+	public void test106(){
+		ProcBackstageClientPledgeTuiyaSelectDTO dto = new ProcBackstageClientPledgeTuiyaSelectDTO();
+		dto.setEid(1);
+		dto.setIsAxceedOneYear(true);
+		Map<String,Object> t = baseDao.agencyDB("Proc_Backstage_client_pledge_tuiya_select", dto);
+		JSONObject y = new JSONObject(t);
+		System.out.println(y);
+	}
+
+
+	@Test
+	public void test17() {
+		long l = System.currentTimeMillis();
+		ProcBackstageVendorAppCustomerReplenishmentStatisticsDTO dto = new ProcBackstageVendorAppCustomerReplenishmentStatisticsDTO();
+		dto.setEid(1);
+		dto.setBeginTime("2019-01-11 00:00:00");
+		dto.setEndTime("2019-01-11 00:00:00");
+		dto.setAccount("13372821182");
+		Map<String, Object> stringObjectMap = vendorDao.replenishmentStatistics(dto);
+		long l1 = System.currentTimeMillis();
+		System.out.println(l1-l);
+		System.out.println(stringObjectMap);
+	}
+
+	@Test
+	public void test107(){
+		ProcBackstageVendorAppCustomerReplenishmentStatisticsDTO dto = new ProcBackstageVendorAppCustomerReplenishmentStatisticsDTO();
+		dto.setEid(1);
+		dto.setBeginTime("2019-01-11 00:00:00");
+		dto.setEndTime("2019-12-30 00:00:00");
+		dto.setAccount("13372821182");
+		long l = System.currentTimeMillis();
+
+		Map<String,Object> t = baseDao.agencyDBVendor("Proc_Backstage_vendor_AppCustomer_replenishment_statistics", dto);
+		long l1 = System.currentTimeMillis();
+		System.out.println(l1-l);
+		JSONObject y = new JSONObject(t);
+		System.out.println(y);
+	}
+
+
+	@Test
+	public void test89(){
+		long l = System.currentTimeMillis();
+		ProcAppOrderSendSelectDTO procAppOrderSendSaveUPDTOdto =
+				new ProcAppOrderSendSelectDTO(1,1,null,"2010-05-01","2020-05-16",null,2,null,null,1,10);
+		Map<String, Object> orderByShopId_v4 = baseOrderManager.findOrderByShopId_v4(procAppOrderSendSaveUPDTOdto);
+		long l1 = System.currentTimeMillis();
+		System.out.println(l1-l);
+		System.out.println(orderByShopId_v4);
+
+	}
+	@Test
+	public void test89_v2(){
+		long l0 = System.currentTimeMillis();
+		ProcAppOrderSendSelectDTO dto =
+				new ProcAppOrderSendSelectDTO(1,1,null,"2010-05-01","2020-05-16",null,2,null,null,1,10);
+		dto = new ProcAppOrderSendSelectDTO();
+		dto.setEid(1);
+		dto.setShopId(1);
+		dto.setOrderNo("QY200623000067");
+		dto.setIfIncludeChargeback(true);
+		Map<String, Object> orderByShopId_v4 = orderDao.PROC_APP_orderSend_SELECT(dto);
+		long l00 = System.currentTimeMillis();
+		System.out.println(l00-l0);
+		System.out.println(orderByShopId_v4);
+	}
+
+	@Test
+	public void test108(){
+		long l = System.currentTimeMillis();
+		ProcBackstageOrderCompensateIntegralDTO dto = new ProcBackstageOrderCompensateIntegralDTO();
+		dto.setEid(1);
+		dto.setOrderId(1);
+		dto.setAccountId(1);
+		Map<String,Object> t = baseDao.agencyDBVendor("Proc_Backstage_order_compensateIntegral", dto);
+		long l1 = System.currentTimeMillis();
+		System.out.println(l1-l);
+		JSONObject y = new JSONObject(t);
+		System.out.println(y);
+	}
+	@Test
+	public void test109(){
+		PayOnDeliveryByWeCathReqDTO dto = new PayOnDeliveryByWeCathReqDTO();
+		dto.setAppId("wx57c89676f397cfd1");
+		dto.setIp("10.108.15.13");
+		String nonce_str = wxPayService.create_nonce_str();
+		dto.setOrderNo("QY200617000021");
+		dto.setOrderId(24008);
+		dto.setTotal(0.02);
+		String s = basePayManager.payOnDeliveryByWeCath(dto);
+		System.out.println(s);
+	}
+
+	@Test
+	public void test110(){
+		ProcXHXStaffScanLocationSelectReqDTO dto = new ProcXHXStaffScanLocationSelectReqDTO();
+		Map<String, Object> map = vendorManager.staffScanLocationSelect(dto);
+		JSONObject a = new JSONObject(map);
+		System.out.println(a);
+	}
+
+	@Test
+	public void test111(){
+		// [dto:ProcAppOrderSendSelectDTO [eid=1, shopId=369, accountId=null, beginTime=null, endTime=null, status=3, payMode=null, orderNo=null, isTicket=null, iRows=0, PageSize=10]]
+		// [aop记录 ent:findOrderByShopId_v4] [dto:ProcAppOrderSendSelectDTO [eid=1, shopId=369, accountId=null, beginTime=null, endTime=null, status=0, payMode=null, orderNo=null, isTicket=null, ifIncludeChargeback=null, PageSize=10, iRows=0]]
+		// [aop记录 ent:findOrderByShopId_v4] [dto:ProcAppOrderSendSelectDTO [eid=1, shopId=369, accountId=null, beginTime=null, endTime=null, status=1, payMode=null, orderNo=null, isTicket=null, ifIncludeChargeback=null, PageSize=10, iRows=10]]
+		ProcAppOrderSendSelectDTO dto = new ProcAppOrderSendSelectDTO();
+		dto.setEid(1);
+		dto.setShopId(369);
+		dto.setStatus(1);
+		dto.setPageSize(10);
+		dto.setiRows(10);
+		Map<String, Object> orderByShopId_v4 = baseOrderManager.findOrderByShopId_v4(dto);
+		System.out.println(orderByShopId_v4);
+	}
+	@Test
+	public void test112(){
+		// [aop记录 ent:selectSendOrderLogisticsByAccountId] [dto:FindSendOrderLogisticsByAccountIdReqDTO [accountId=1814, PageIndex=0, PageSize=10, IsSelectAll=false, beginTime=null, endTime=null]]
+		FindSendOrderLogisticsByAccountIdReqDTO dto = new FindSendOrderLogisticsByAccountIdReqDTO();
+		dto.setAccountId(1814);
+		dto.setPageIndex(1);
+		dto.setPageSize(10);
+		dto.setIsSelectAll(false);
+		baseOrderManager.selectSendOrderLogisticsByAccountId(dto);
+	}
+
+	@Test
+	public void test113(){
+		ProcAppOrderSendSaveUPDTO d = new ProcAppOrderSendSaveUPDTO();
+		d.setSendAccountId(0);
+		d.setManagerAccountId(1826);
+		d.setOrderSend("[  {    \"eid\" : 1,    \"ShopID\" : 369,    \"orderID\" : 24139  }]");
+		d.setSendStatus(-3);
+		d.setRemark("地址送不到");
+		d.setCreater("赵敏");
+		d.setDataSource("APP");
+		baseOrderManager.operOrderSendLogs(d);
+	}
+	@Test
+	public void test114(){
+		List<OrderHistorySixAccount> orderHistorySixAccounts = orderDao.selectOrderAccountByOrderId(3620428);
+		System.out.println(orderHistorySixAccounts);
+	}
+	@Test
+	public void test115(){
+		// [{eid=1, isSettingWechatliteapp=true, keepOpenId=oGLfUwF1xL36aLz0zVYVN1FUI81c, matchQuantity=0, yw_mdId=11, keeperMobile=18598251875, sendOnTime=90, freight=0.0000, chooseTimeItem=true, shopName=松岗9店, description=这是个好店11, keeperHeadImgUrl=http://thirdwx.qlogo.cn/mmopen/PiajxSqBRaEIrQAxTg1EMPDQYD3t84WVVnqrtEibbPThVOyHoHVWtpQwa6DpicQBOBkPHrPbak8bYPnbxoicwkGTgQ/132, cityId=199, keeperId=1, freightRemark=无电梯三楼以上每加一层加运费2元, dateCreated=2015-11-23 14:55:17.8, cityName=深圳, isSettingTimeframe=true, cityIfLine=true, yw_mdName=, isVendor=true, tel=18745217896, startTime=8:00, shopId=1, scopeDescription=沙井顶峰科技园周边2公里, minSendPrice=10.0000, keeperNickName=LY, ifLine=true, sendAddMinute=60, address=琦丰达大厦A1901, districtName=宝安区, eName=青云蓝海科技, sendLocation=, pictureUrl=http://sdd.haoshui.com.cn/Upload/Client/photos/images/20190604/201906041559614890415.jpg, shareClientId=164, shareAccount=15914000858, shopProductCount=31, ifGroupBuy=false, shareId=1137, provinceId=19, linkman=经理, districtId=1772, location=113.8677870875775,22.750026147631388, createUser=18598251875, shopType=加盟门, endTime=12:30, shopNo=1658748}]
+		// [{eid=1, isSettingWechatliteapp=true, keepOpenId=oGLfUwF1xL36aLz0zVYVN1FUI81c, matchQuantity=0, yw_mdId=11, keeperMobile=18598251875, sendOnTime=90, freight=0.0000, chooseTimeItem=true, shopName=松岗9店, description=这是个好店11, keeperHeadImgUrl=http://thirdwx.qlogo.cn/mmopen/PiajxSqBRaEIrQAxTg1EMPDQYD3t84WVVnqrtEibbPThVOyHoHVWtpQwa6DpicQBOBkPHrPbak8bYPnbxoicwkGTgQ/132, cityId=199, keeperId=1, freightRemark=无电梯三楼以上每加一层加运费2元, dateCreated=2015-11-23 14:55:17.8, cityName=深圳, isSettingTimeframe=true, cityIfLine=true, yw_mdName=, isVendor=true, tel=18745217896, startTime=8:00, shopId=1, scopeDescription=沙井顶峰科技园周边2公里, minSendPrice=10.0000, keeperNickName=LY, ifLine=true, sendAddMinute=60, address=琦丰达大厦A1901, districtName=宝安区, eName=青云蓝海科技, sendLocation=, pictureUrl=http://sdd.haoshui.com.cn/Upload/Client/photos/images/20190604/201906041559614890415.jpg, shareClientId=164, shareAccount=15914000858, shopProductCount=31, ifGroupBuy=false, shareId=1137, provinceId=19, linkman=经理, districtId=1772, location=113.8677870875775,22.750026147631388, createUser=18598251875, shopType=加盟门, endTime=12:30, shopNo=1658748}]
+		ProcBackstageShopSelectDTO dto = new ProcBackstageShopSelectDTO();
+		dto.setShopId(1);
+		dto.setEid(1);
+		Map<String, Object> map = shopDao.selectShopByEidAndShopId(dto);
+
+		System.out.println(map);
+	}
+
+	@Test
+	public void test116(){
+		ProcXhxVendorStatusImageRecordSelect dto = new ProcXhxVendorStatusImageRecordSelect();
+		Map<String, Object> map = vendorManager.Proc_XHX_vendor_status_image_record_select(dto);
+		System.out.println(map);
+	}
+
+	@Test
+	public void test117(){
+		List<EEnterpriseMsgWeixin> eEnterpriseMsgWeixins = userDao.selectEEnterpriseMsgWeixinByEid(1);
+		EWeixinSendMessageTemplateEnterprise eWeixinSendMessageTemplateEnterprise = enterpriseDao.selectEWeixinSendMessageTemplateEnterpriseByTid(1, 10);
+		System.out.println(eEnterpriseMsgWeixins);
+		System.out.println(eWeixinSendMessageTemplateEnterprise);
+	}
+
+	@Test
+	public void test118(){
+		String s = messageManager.pushVendorShipmentMessage("89d8732d7e8d48cd9323e35fda1908c3");
+		System.out.println(s);
+	}
+
+	@Test
+	public void test119(){
+		// [params:{eid=1, PageSize=10, IsSelectAll=false, appver=1.4.1, sign=653F7115F4236084EFBED5DF134F6566, equipment=ANDROID, ifAudit=false, PageIndex=1, timestamp=1595836687746}] [start:1595836687838]
+		ProcBackstageZHDistributionCostsCashOutfromEvianSelectInputDTO dfs = new ProcBackstageZHDistributionCostsCashOutfromEvianSelectInputDTO();
+		dfs.setEid(1);
+		dfs.setIfAudit(false);
+		Map<String, Object> map = enterpriseDao.Proc_Backstage_ZH_DistributionCosts_CashOut_fromEvian_select(dfs);
+		System.out.println(map);
+	}
+
+	@Test
+	public void test120(){
+		List<GoodsShopCar> asdf = new ArrayList<>();
+		GoodsShopCar t = new GoodsShopCar();
+		t.setId(1);
+		t.setEid(1);
+		t.setShopId(1);
+		t.setClientId(752);
+		t.setPid(43);
+		t.setNumber(1);
+		t.setSettleStyle("现金");
+		t.setDateCreated(System.currentTimeMillis());
+		t.setDateUpdated(System.currentTimeMillis());
+		t.setFpid(0);
+		t.setActivityId(0);
+		asdf.add(t);
+		List<Map<String, Object>> shopCartGoodsOptimizeRedis = systemDao.getShopCartGoodsOptimizeRedis(752, 1, asdf);
+		System.out.println(shopCartGoodsOptimizeRedis);
+		shopCartGoodsOptimizeRedis = systemDao.getShopCartGoodsOptimizeRedis(752, 1, asdf);
+		System.out.println(shopCartGoodsOptimizeRedis);
+		shopCartGoodsOptimizeRedis = systemDao.getShopCartGoodsOptimizeRedis(752, 1, asdf);
+		System.out.println(shopCartGoodsOptimizeRedis);
+
+	}
+
+	@Test
+	public void test121(){
+		VendorDoorStatisticsDTO dto = new VendorDoorStatisticsDTO();
+		dto.setEid(1);
+		dto.setMainboardType(1);
+		Map<String, Object> map = vendorManager.vendorAppCustomerMainboardContainerDoorStatistics(dto);
+		System.out.println(map);
+
+	}
+
+	@Test
+	public void test122(){
+		JPushShangHuModel model = new JPushShangHuModel(560873,"","测试用的19门 10240001号:服务端检测到异常离线！",2,"2020-08-26 00:08:38",1,"140fe1da9ec9f8a3dfd","","",1);
+		String s = JacksonUtils.obj2json(model);
+        System.out.println(s);
+		Map<String, Object> map = JpushShangHuService.pushMsg(model);
+		System.out.println(map);
+	}
+
+
+	@Test
+	public void test123() throws Exception {
+		List<SysParamModel> wechatServicePayMchId = systemDao.selectESystemConfig("WechatServicePayMchId");
+		List<SysParamModel> WechatServicePaySecret = systemDao.selectESystemConfig("WechatServicePaySecret");
+		List<SysParamModel> WechatServicePayCertSn = systemDao.selectESystemConfig("WechatServicePayCertSn");
+		List<SysParamModel> WechatServicePayPrivateKey = systemDao.selectESystemConfig("WechatServicePayPrivateKey");
+		String mchId = wechatServicePayMchId.get(0).getSysValue(); // 商户号
+		String mchSerialNo = WechatServicePayCertSn.get(0).getSysValue(); // 商户证书序列号
+		String apiV3Key = WechatServicePaySecret.get(0).getSysValue(); // api密钥
+		// 你的商户私钥
+		String privateKey = WechatServicePayPrivateKey.get(0).getSysValue();
+
+		PrivateKey merchantPrivateKey = PemUtil.loadPrivateKey(
+				new ByteArrayInputStream(privateKey.getBytes("utf-8")));
+
+		//使用自动更新的签名验证器，不需要传入证书
+		AutoUpdateCertificatesVerifier verifier = new AutoUpdateCertificatesVerifier(
+				new WechatPay2Credentials(mchId, new PrivateKeySigner(mchSerialNo, merchantPrivateKey)),
+				apiV3Key.getBytes("utf-8"));
+
+		CloseableHttpClient httpClient = WechatPayHttpClientBuilder.create()
+				.withMerchant(mchId, mchSerialNo, merchantPrivateKey)
+				.withValidator(new WechatPay2Validator(verifier))
+				.build();
+		String filePath = "C:/Users/XHX/Desktop/日志/190321153432302617-d.jpg";
+
+		URI uri = new URI("https://api.mch.weixin.qq.com/v3/merchant/media/upload");
+
+		File file = new File(filePath);
+		try (FileInputStream s1 = new FileInputStream(file)) {
+			String sha256 = DigestUtils.sha256Hex(s1);
+			try (InputStream s2 = new FileInputStream(file)) {
+				WechatPayUploadHttpPost request = new WechatPayUploadHttpPost.Builder(uri)
+						.withImage(file.getName(), sha256, s2)
+						.build();
+
+				CloseableHttpResponse response1 = httpClient.execute(request);
+				assertEquals(200, response1.getStatusLine().getStatusCode());
+				try {
+					HttpEntity entity1 = response1.getEntity();
+					// do something useful with the response body
+					// and ensure it is fully consumed
+					String s = EntityUtils.toString(entity1);
+					System.out.println(s);
+				} finally {
+					response1.close();
+				}
+			}
+		}
+	}
+
+
+	@Test
+	public void test124(){
+		List<EWechatServicepaySubaccountApplyProvinceRepDTO> eWechatServicepaySubaccountApplyProvinceRepDTOS = vendorManager.selectEWechatServicepaySubaccountApplyProvince();
+		System.out.println(eWechatServicepaySubaccountApplyProvinceRepDTOS);
+	}
+	@Test
+	public void test125(){
+		Integer integer = thirdPartyMapperDao.deleteRecruitGood(9);
+		System.out.println(integer);
+	}
+	@Test
+	public void test126(){
+		ProcBackstageClientOperatMakeReqDTO dto = new ProcBackstageClientOperatMakeReqDTO();
+		dto.setAccount("15920034657");
+		Map<String, Object> map = thirdPartyDao.Proc_Backstage_client_operat_Make(dto);
+		System.out.println(map);
+	}
+	@Test
+	public void test127() throws IOException {
+				baseOrderManager.qrcodeVisitReply("1316303101");
+	}
+	@Test
+	public void test128() throws IOException {
+		ProcBackstageProductSpecsRelevantSelectReqDTO dto = new ProcBackstageProductSpecsRelevantSelectReqDTO();
+		dto.setPid(988);
+		Map<String, Object> map = productDao.Proc_Backstage_product_specs_relevant_select(dto);
+		System.out.println(map);
+	}
 }

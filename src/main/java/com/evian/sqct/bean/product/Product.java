@@ -1,7 +1,12 @@
 package com.evian.sqct.bean.product;
 
-public class Product {
+import com.evian.sqct.bean.baseBean.PagingPojo;
 
+import javax.validation.constraints.NotNull;
+
+public class Product extends PagingPojo {
+	@NotNull
+	private Integer eid;
 	private Integer pid;
 	private String pname;
 	private String pcode;
@@ -9,7 +14,6 @@ public class Product {
 	private Boolean ifHot;
 	private Integer status;
 	private Boolean enabled;
-	private Integer eid;
 	private Integer cid;
 	private Integer shopId;
 	private String createUser;
@@ -24,9 +28,10 @@ public class Product {
 	private Boolean isSettingEarning;
 	private Boolean ifpledge;
 	private Boolean isAutoAudit;
-	private Integer pageIndex;
-	private Integer pageSize;
-	private Boolean isSelectAll;
+	private Boolean isPromotion;
+	private Boolean linePay;
+	private Boolean recProduct;
+	private Integer freightType;
 	public Integer getPid() {
 		return pid;
 	}
@@ -135,25 +140,6 @@ public class Product {
 	public void setIsSettingTyop2(Boolean isSettingTyop2) {
 		this.isSettingTyop2 = isSettingTyop2;
 	}
-	public Integer getPageIndex() {
-		return pageIndex;
-	}
-	public void setPageIndex(Integer pageIndex) {
-		this.pageIndex = pageIndex;
-	}
-	public Integer getPageSize() {
-		return pageSize;
-	}
-	public void setPageSize(Integer pageSize) {
-		this.pageSize = pageSize;
-	}
-	public Boolean getIsSelectAll() {
-		return isSelectAll;
-	}
-	public void setIsSelectAll(Boolean isSelectAll) {
-		this.isSelectAll = isSelectAll;
-	}
-	
 	public Integer getIsSettingTyop1() {
 		return isSettingTyop1;
 	}
@@ -178,6 +164,30 @@ public class Product {
 	public void setIsAutoAudit(Boolean isAutoAudit) {
 		this.isAutoAudit = isAutoAudit;
 	}
+	public Boolean getIsPromotion() {
+		return isPromotion;
+	}
+	public void setIsPromotion(Boolean promotion) {
+		isPromotion = promotion;
+	}
+	public Boolean getLinePay() {
+		return linePay;
+	}
+	public void setLinePay(Boolean linePay) {
+		this.linePay = linePay;
+	}
+	public Boolean getRecProduct() {
+		return recProduct;
+	}
+	public void setRecProduct(Boolean recProduct) {
+		this.recProduct = recProduct;
+	}
+	public Integer getFreightType() {
+		return freightType;
+	}
+	public void setFreightType(Integer freightType) {
+		this.freightType = freightType;
+	}
 	@Override
 	public String toString() {
 		return "Product [pid=" + pid + ", pname=" + pname + ", pcode=" + pcode + ", property=" + property + ", ifHot="
@@ -186,6 +196,7 @@ public class Product {
 				+ ", ifTicket=" + ifTicket + ", hashTicket=" + hashTicket + ", sortTyoe=" + sortTyoe + ", evianPName="
 				+ evianPName + ", isSettingTyop1=" + isSettingTyop1 + ", isSettingTyop2=" + isSettingTyop2
 				+ ", isSettingEarning=" + isSettingEarning + ", ifpledge=" + ifpledge + ", isAutoAudit=" + isAutoAudit
-				+ ", pageIndex=" + pageIndex + ", pageSize=" + pageSize + ", isSelectAll=" + isSelectAll + "]";
+				+ ", isPromotion=" + isPromotion+ ", linePay=" + linePay + ", recProduct=" + recProduct+ ", freightType=" + freightType
+				+ ", PageIndex=" + PageIndex + ", PageSize=" + PageSize + ", IsSelectAll=" + IsSelectAll + "]";
 	}
 }

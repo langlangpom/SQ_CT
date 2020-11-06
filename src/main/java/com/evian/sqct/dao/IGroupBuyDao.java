@@ -1,5 +1,7 @@
 package com.evian.sqct.dao;
 
+import com.evian.sqct.bean.groupBuy.input.FindGroupBuyProductReqDTO;
+
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +16,7 @@ public interface IGroupBuyDao {
 	 * 查询拼团订单
 	 * @return
 	 */
-	Map<String, Object> Proc_Backstage_groupbuy_order_select(String beginTime,String endTime,Integer eid,String orderNo,String nickName,Boolean isCommander,Boolean isRefund,String account,Integer groupBuyState,String paymentNo,String orderGroup,String eName,String pname,String pcode,String sdkType,Integer shopId,Boolean isFilterEndOrder,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+	Map<String, Object> Proc_Backstage_groupbuy_order_select(String beginTime,String endTime,Integer eid,String orderNo,String nickName,Boolean isCommander,Boolean isRefund,String account,Integer groupBuyState,String paymentNo,String orderGroup,String eName,String pname,String pcode,String sdkType,Integer shopId,Boolean isFilterEndOrder,Integer sucMode,Integer minGroupBuyNum,Integer maxGroupBuyNum,Integer sortType,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 	
 	/**
 	 * 拼团活动商品
@@ -35,7 +37,7 @@ public interface IGroupBuyDao {
 	 * @param IsSelectAll
 	 * @return
 	 */
-	Map<String, Object> Proc_Backstage_groupbuy_product_select(String beginTime,String endTime,Integer eid,Integer cityId,Integer groupBuyType,Boolean isEnabled,String eName,String shopName,Integer shopId,String pname,String pcode,Integer cid,String groupName,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+	Map<String, Object> Proc_Backstage_groupbuy_product_select(FindGroupBuyProductReqDTO dto);
 	
 	List<Map<String, Object>> e_groupbuy_price_schemeByXaId(Integer xaId);
 
@@ -47,5 +49,12 @@ public interface IGroupBuyDao {
 	 * @return
 	 */
 	List<Map<String,Object>> selectClientNotPayGroupBuyOrder(String identityCode, Integer eid, Integer xaId, Integer pid);
+
+	/**
+	 * 根据gboId 查询 参团人的clientId
+	 * @param gboId
+	 * @return
+	 */
+	List<Map<String,Object>> selectClientId_e_groupbuy_orderByGboId(Integer gboId);
 	
 }

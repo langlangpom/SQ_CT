@@ -31,7 +31,8 @@ public class VendorMainboard2 {
 	private String containerPic;
 	private Integer communityId;
 	private String communityName;
-	
+	private Integer mainboardType;			// 类型：0售货机；1售货架
+
 	public String getContainerPic() {
 		return containerPic;
 	}
@@ -170,6 +171,15 @@ public class VendorMainboard2 {
 	public void setShopName(String shopName) {
 		this.shopName = shopName;
 	}
+
+	public Integer getMainboardType() {
+		return mainboardType;
+	}
+
+	public void setMainboardType(Integer mainboardType) {
+		this.mainboardType = mainboardType;
+	}
+
 	@Override
 	public String toString() {
 		return "VendorMainboard2 [mainboardId=" + mainboardId + ", mainboardNo=" + mainboardNo + ", mainboardNoMD5="
@@ -179,7 +189,7 @@ public class VendorMainboard2 {
 				+ ", shopContainerName=" + shopContainerName + ", location=" + location + ", containerAddress="
 				+ containerAddress + ", remark=" + remark + ", bindTime=" + bindTime + ", binder=" + binder + ", eName="
 				+ eName + ", shopName=" + shopName + ", containerPic=" + containerPic + ", communityId=" + communityId
-				+ ", communityName=" + communityName + "]";
+				+ ", communityName=" + communityName + ", mainboardType=" + mainboardType + "]";
 	}
 	
 }

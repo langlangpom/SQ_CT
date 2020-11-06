@@ -2,10 +2,11 @@ package com.evian.sqct.api.action;
 
 import com.evian.sqct.api.BaseAction;
 import com.evian.sqct.bean.user.EclientDTO;
+import com.evian.sqct.exception.BaseRuntimeException;
 import com.evian.sqct.exception.ResultException;
+import com.evian.sqct.response.ResultCode;
+import com.evian.sqct.response.ResultVO;
 import com.evian.sqct.service.BaseEntityCardManager;
-import com.evian.sqct.util.CallBackPar;
-import com.evian.sqct.util.Constants;
 import net.sf.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,11 +44,8 @@ public class EntityCardAction extends BaseAction {
      */
     @RequestMapping("findEntityCardCode.action")
     public Map<String,Object> findEntityCardCode(String beginTime,String endTime,Integer eid,Integer codeStatus,String cardCode,String barCode,String qrcode,Boolean isActivate,Integer accountId,String pcode,String account,String buyAccount,String useAccount,String sellBeginTime, String sellEndTime,String batchName,String storeType,String storeName,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-        Map<String, Object> parMap = CallBackPar.getParMap();
-
         Map<String, Object> result = baseEntityCardManager.Proc_Backstage_entity_card_storeIn_code_select(beginTime, endTime, eid, codeStatus, cardCode, barCode, qrcode,isActivate, accountId, pcode, account,buyAccount, useAccount,sellBeginTime,sellEndTime,batchName,storeType, storeName, null,PageIndex, PageSize, IsSelectAll);
-        setData(parMap,result);
-        return parMap;
+        return result;
     }
 
     /**
@@ -58,15 +56,12 @@ public class EntityCardAction extends BaseAction {
      * @return
      */
     @RequestMapping("entityCardNumStatistics.action")
-    public Map<String,Object> entityCardNumStatistics(Integer eid,Integer accountId){
-        Map<String, Object> parMap = CallBackPar.getParMap();
+    public Object entityCardNumStatistics(Integer eid,Integer accountId){
         if(eid==null||accountId==null) {
-            setERROR_PARAM(parMap);
-            return parMap;
+            return new ResultVO(ResultCode.CODE_ERROR_PARAM);
         }
         Map<String, Object> result = baseEntityCardManager.Proc_Backstage_entity_card_storeIn_code_AccountStatistics(eid, accountId);
-        setData(parMap,result);
-        return parMap;
+        return result;
     }
 
     /**
@@ -77,18 +72,15 @@ public class EntityCardAction extends BaseAction {
      * @return
      */
     @RequestMapping("entityCardActivation.action")
-    public Map<String,Object> entityCardActivation(Integer eid,Integer accountId,String barCode){
-        Map<String, Object> parMap = CallBackPar.getParMap();
+    public ResultVO entityCardActivation(Integer eid,Integer accountId,String barCode){
         if(eid==null||accountId==null||barCode==null) {
-            setERROR_PARAM(parMap);
-            return parMap;
+            return new ResultVO(ResultCode.CODE_ERROR_PARAM);
         }
         String tag = baseEntityCardManager.Proc_Backstage_entity_card_storeIn_code_activate(eid, accountId, barCode);
         if(!"1".equals(tag)){
-            setCode(parMap, 150);
-            setMessage(parMap, tag);
+            throw new ResultException(tag);
         }
-        return parMap;
+        return new ResultVO();
     }
 
     /**
@@ -100,10 +92,8 @@ public class EntityCardAction extends BaseAction {
      */
     @RequestMapping("findIntegralVip.action")
     public Map<String,Object> findIntegralVip(Integer vipId,Integer eid,String eName,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-        Map<String, Object> parMap = CallBackPar.getParMap();
         Map<String, Object> result = baseEntityCardManager.Proc_Backstage_integral_vip_select(vipId, eid, eName, PageIndex, PageSize, IsSelectAll);
-        setData(parMap,result);
-        return parMap;
+        return result;
     }
 
     /**
@@ -112,21 +102,15 @@ public class EntityCardAction extends BaseAction {
      * @return
      */
     @RequestMapping("saveCarSellOrder.action")
-    public Map<String,Object> saveCarSellOrder(String carSellOrder) {
-        Map<String, Object> parMap = CallBackPar.getParMap();
+    public ResultVO saveCarSellOrder(String carSellOrder) {
         if(carSellOrder==null){
-            setERROR_PARAM(parMap);
-            return parMap;
+            return new ResultVO(ResultCode.CODE_ERROR_PARAM);
         }
         JSONObject order = JSONObject.fromObject(carSellOrder);
-        try {
-            baseEntityCardManager.saveCarSellOrder(order);
-        } catch (ResultException e) {
-            logger.error("[e:{}]",e);
-            setERROR_150(parMap,e.getMessage());
-        }
+        baseEntityCardManager.saveCarSellOrder(order);
 
-        return parMap;
+
+        return new ResultVO();
     }
     /**
      * 164.根据卡号查询购买用户信息
@@ -134,23 +118,19 @@ public class EntityCardAction extends BaseAction {
      * @return
      */
     @RequestMapping("findEntityCardOrderBuyAccountByCardCode.action")
-    public Map<String,Object> findEntityCardOrderBuyAccountByCardCode(String cardCode) {
-        Map<String, Object> parMap = CallBackPar.getParMap();
+    public Object findEntityCardOrderBuyAccountByCardCode(String cardCode) {
         if(cardCode==null){
-            setERROR_PARAM(parMap);
-            return parMap;
+            return new ResultVO(ResultCode.CODE_ERROR_PARAM);
         }
         List<EclientDTO> eclientDTOS = baseEntityCardManager.selectEntityCardOrderBuyAccountByCardCode(cardCode);
         if(eclientDTOS.size()==0){
             // 未查询到相关数据
-            setERROR_BY_CODE(parMap, Constants.CODE_SDDV3_NO_DATA);
-            return parMap;
+            throw BaseRuntimeException.jointCodeAndMessage(ResultCode.CODE_SDDV3_NO_DATA);
         }
         Map<String,Object> map = new HashMap<>();
         map.put("buyAccounts",eclientDTOS);
-        setData(parMap,map);
 
-        return parMap;
+        return map;
     }
 
 }

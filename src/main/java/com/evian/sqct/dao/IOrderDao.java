@@ -1,6 +1,7 @@
 package com.evian.sqct.dao;
 
 import com.evian.sqct.bean.order.*;
+import com.evian.sqct.bean.order.request.*;
 import com.evian.sqct.bean.sys.EEnterpriseWechatliteapp;
 
 import java.util.List;
@@ -15,7 +16,7 @@ public interface IOrderDao {
 	 * @param order
 	 * @return
 	 */
-	public Map<String, Object> selectOrderByShopId(Order order);
+	Map<String, Object> selectOrderByShopId(Order order);
 	
 	/**
 	 * sql
@@ -23,7 +24,7 @@ public interface IOrderDao {
 	 * @param order
 	 * @return
 	 */
-	public Map<String, Object> selectOrderByShopId_v2(Order order);
+	Map<String, Object> selectOrderByShopId_v2(Order order);
 	
 	/**
 	 * sql
@@ -31,7 +32,7 @@ public interface IOrderDao {
 	 * @param order
 	 * @return
 	 */
-	public Map<String, Object> selectOrderByShopId_v2(Integer accountId,Order order);
+	Map<String, Object> selectOrderByShopId_v2(Integer accountId,Order order);
 
 
 	/**
@@ -41,13 +42,13 @@ public interface IOrderDao {
 	 * @param isShopManager 是否是管理员
 	 * @return
 	 */
-	public Map<String, Object> selectOrderByShopId_v2(Integer accountId,Order order,boolean isShopManager);
+	Map<String, Object> selectOrderByShopId_v2(Integer accountId,Order order,boolean isShopManager);
 	
 	/**
 	 * 查询订单数量
 	 * @return
 	 */
-	public Integer selectOrderCountByShopIdAndTime(String beginTime,String endTime);
+	Integer selectOrderCountByShopIdAndTime(String beginTime,String endTime);
 	
 	/**
 	 * 查询订单商品详情
@@ -55,7 +56,7 @@ public interface IOrderDao {
 	 * @param eid
 	 * @return
 	 */
-	public List<OrderProductInfo> selectOrderProductInfo(Integer orderId,Integer eid);
+	List<OrderProductInfo> selectOrderProductInfo(Integer orderId,Integer eid);
 	
 	/**
 	 * 订单催单
@@ -64,7 +65,7 @@ public interface IOrderDao {
 	 * @param remark
 	 * @return
 	 */
-	public String cuidan(Integer eid,Integer orderId,String remark);
+	String cuidan(Integer eid,Integer orderId,String remark);
 	
 	/**
 	 * 申请退款
@@ -76,7 +77,7 @@ public interface IOrderDao {
 	 * @param th_CreateUser
 	 * @return
 	 */
-	public String drawback(Integer orderId,Integer userId,String th_type,String th_reason,String th_remark,String th_CreateUser);
+	String drawback(Integer orderId,Integer userId,String th_type,String th_reason,String th_remark,String th_CreateUser);
 	
 	/**
 	 * 取消订单
@@ -87,32 +88,32 @@ public interface IOrderDao {
 	 * @param e_order_detail_ID 0 取消全部订单；>0取消当前行商品
 	 * @return
 	 */
-	public String cancellationOfOrder(Integer orderId,Integer userId,Integer eid,String cancelReason,Integer e_order_detail_ID);
+	String cancellationOfOrder(Integer orderId,Integer userId,Integer eid,String cancelReason,Integer e_order_detail_ID);
 	
 	/**
 	 * 查询某些系统参数
 	 * @return
 	 */
-	public Map<String, Object> selectSysConfig();
+	Map<String, Object> selectSysConfig();
 	
 	/**
 	 * 根据订单Id查询订单商品
 	 * @param orderId
 	 * @return
 	 */
-	public List<OrderDetail> selectOrderDetailByOrderId(Integer orderId);
+	List<OrderDetail> selectOrderDetailByOrderId(Integer orderId);
 	
 	/**
 	 * 查询中台设置自定义订单取消原因
 	 * @return
 	 */
-	public List<ESysBaseType> selectSysOrderCancelCause(Integer eid,String typeClass);
+	List<ESysBaseType> selectSysOrderCancelCause(Integer eid,String typeClass);
 	
 	/**
 	 * 修改订单状态
 	 * @return
 	 */
-	public Integer updateOrderStatus(Integer orderId,Integer status,Integer eid);
+	Integer updateOrderStatus(Integer orderId,Integer status,Integer eid);
 	
 	/**
 	 * 查询订单
@@ -120,30 +121,24 @@ public interface IOrderDao {
 	 * @param eid
 	 * @return
 	 */
-	public Order selectOrderByOrderIdAndEid(Integer orderId,Integer eid);
+	Order selectOrderByOrderIdAndEid(Integer orderId,Integer eid);
 
 	/**
 	 * 查询订单
 	 * @param orderId
 	 * @return
 	 */
-	public OrderModel selectOrderByOrderId(Integer orderId);
+	OrderModel selectOrderByOrderId(Integer orderId);
 
-	public List<EOrderLogistics> selectEOrderLogisticsByOrderId(Integer orderId);
-	
-	/**
-	 * 退货退款申请查询
-	 * @param orderId
-	 * @return
-	 */
-	Map<String, Object> Proc_Backstage_order_tuihuo_select(Integer orderId);
+	List<EOrderLogistics> selectEOrderLogisticsByOrderId(Integer orderId);
+
 	
 	/**
 	 * 退货退款申请查询
 	 * @param orderId
 	 * @returne_order_detail
 	 */
-	Map<String, Object> Proc_Backstage_order_tuihuo_select(Integer orderId,String beginTime,String endTime,Integer eid,String eName,String orderNo,String account,String th_type,String paymentPlatform,Integer ifaudit,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+	Map<String, Object> Proc_Backstage_order_tuihuo_select(ProcBackstageOrderTuihuoSelectReqDTO dto);
 	
 	/**
 	 * 终端退款退货申请审核(每一笔交易金额最多只能退款一次，不管结果成功与否)
@@ -158,7 +153,7 @@ public interface IOrderDao {
 	 * @param auditUser
 	 * @return
 	 */
-	public String Proc_Backstage_order_tuihuo_audit(Integer orderId,Integer eid,Integer ifaudit,String auditType,String auditRen,Double th_money,String auditBankAccount,String auditremark,String auditUser);
+	String Proc_Backstage_order_tuihuo_audit(ProcBackstageOrderTuihuoAuditReqDTO dto);
 	
 	/**
 	 * 查询企业 mchid 和支付密钥
@@ -175,7 +170,7 @@ public interface IOrderDao {
 	 * @param orderId
 	 * @return
 	 */
-	Map<String, Object> Proc_Backstage_order_payment_select(Integer orderId);
+	Map<String, Object> Proc_Backstage_order_payment_select(ProcBackstageOrderPaymentSelectReqDTO dto);
 	
 	/**
 	 * 水趣退款日志
@@ -252,4 +247,66 @@ public interface IOrderDao {
 	Map<String,Object> selectEEnterpriseAppPayParamByAppId(String appId);
 
 	Map<String,Object> Proc_Backstage_order_detail_eticketTuiKe_select(String beginTime,String endTime,Integer eid,String tuiKeAccount,String tuiKeManageAccount,String pname,String account,Integer status,Boolean isHistory,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+
+	Map<String, Object> Proc_Backstage_order_detail_eticketTuiKe_select_statistics(String beginTime, String endTime, Integer eid, String tuiKeAccount, String tuiKeManageAccount, String pname, Integer status, Boolean isHistory, Integer PageIndex, Integer PageSize, Boolean IsSelectAll);
+
+	String PROC_APP_OrderConfirm_UPDATE(Integer orderID, Integer eid, String UserAccount);
+
+	String PROC_APP_orderSend_saveUP(String Send_GUID, ProcAppOrderSendSaveUPDTO procAppOrderSendSaveUPDTO);
+
+	String PROC_APP_orderSend_saveUP_XML(String Send_GUID, ProcAppOrderSendSaveUPDTO procAppOrderSendSaveUPDTO);
+
+	Map<String,Object> PROC_APP_orderSend_SELECT(ProcAppOrderSendSelectDTO dto);
+
+	/**
+	 * 查询订单日志
+	 * @param orderId
+	 * @return
+	 */
+	List<Map<String,Object>> selectSendOrderLogistics(Integer orderId);
+
+	String PROC_APP_orderSend_saveLogistics(ProcAppOrderSendSaveLogisticsDTO dto);
+
+	Map<String, Object> Proc_Backstage_client_pledge_tuiya_select(ProcBackstageClientPledgeTuiyaSelectDTO dto);
+
+	String Proc_Backstage_client_pledge_tuiya_transfer(ProcBackstageClientPledgeTuiyaTransferDTO dto);
+
+	ClientPledgeTuiya selectClientPledgeTuiyaByOrderId(Integer orderId);
+
+	/**
+	 * 根据订单id查询企业用户appid openid
+	 * @param orderId
+	 * @return
+	 */
+	List<OrderHistorySixAccount> selectOrderHistorySixAccountByOrderId(Integer orderId);
+
+	Map<String, Object> selectSendOrderLogisticsByAccountId(FindSendOrderLogisticsByAccountIdReqDTO dto);
+
+	Integer insertEOrderLogisticsByOrderId(EOrderLogistics orderLogistics);
+
+	Integer selectOrderStatusByOrderId(Integer orderId);
+
+	String PROC_APP_Order_PayAnother(PROCAPPOrderPayAnotherReqDTO dto);
+
+	String PROC_APP_Order_PayAnother_Notify(PROCAPPOrderPayAnotherNotifyReqDTO dto);
+
+	String PROC_APP_order_statusUPdate(PROCAPPOrderStatusUPdateReqDTO dto);
+
+	/**
+	 * 根据订单id查询企业用户appid openid
+	 * @param orderId
+	 * @return
+	 */
+	List<OrderHistorySixAccount> selectOrderAccountByOrderId(Integer orderId);
+	/**
+	 * 根据订单id查询企业用户appid openid
+	 * @param orderId
+	 * @return
+	 */
+	List<OrderHistorySixAccount> selectOrderAccountByClientId(Integer clientiId,Integer eid);
+
+	void Proc_Backstage_order_tuihuo_audit_TZ(ProcBackstageOrderTuihuoAuditTZReqDTO dto);
+
+	Map<String,Object> Proc_Backstage_order_tuihuo_audit_SH(ProcBackstageOrderTuihuoAuditReqDTO dto);
+
 }

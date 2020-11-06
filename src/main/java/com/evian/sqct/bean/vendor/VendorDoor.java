@@ -22,6 +22,15 @@ public class VendorDoor {
 	private String styleCode;		// 主题色
 	private String openId;			// 购买用户限制，为空时任何人可以购买，否则只有该openId的用户才可以购买，支付完成或者补货时操作（比如奖品发放时候用到）
 	private Integer integralQuantityForNoPay;
+	private Double originalPrice;
+
+	public Double getOriginalPrice() {
+		return originalPrice;
+	}
+
+	public void setOriginalPrice(Double originalPrice) {
+		this.originalPrice = originalPrice;
+	}
 
 	public Integer getIntegralQuantityForNoPay() {
 		return integralQuantityForNoPay;
@@ -127,12 +136,13 @@ public class VendorDoor {
 	public void setStyleCode(String styleCode) {
 		this.styleCode = styleCode;
 	}
+
 	@Override
 	public String toString() {
 		return "VendorDoor [mainboardId=" + mainboardId + ", doorIndex=" + doorIndex + ", productId=" + productId
 				+ ", createTime=" + createTime + ", creater=" + creater + ", eid=" + eid + ", doorStatus=" + doorStatus
 				+ ", portNo=" + portNo + ", alias=" + alias + ", productName=" + productName + ", picture=" + picture
 				+ ", price=" + price + ", isLine=" + isLine + ", imageText=" + imageText + ", styleCode=" + styleCode
-				+ ", openId=" + openId + ", integralQuantityForNoPay=" + integralQuantityForNoPay + "]";
+				+ ", openId=" + openId + ", originalPrice=" + originalPrice + ", integralQuantityForNoPay=" + integralQuantityForNoPay + "]";
 	}
 }

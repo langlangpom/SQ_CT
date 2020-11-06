@@ -18,4 +18,6 @@ public interface ILedDao {
     Integer updateLedOrderStatus(Integer orderId,Integer auditStatus,String auditRemark,String auditor);
 
     List<Map<String,Object>> selectLedOrderByEid(Integer eid);
+
+    Map<String, Object> Proc_Backstage_vendor_ad_led_order_new_select(String beginTime,String endTime,Integer orderId,String orderNo,Integer eid,String mainboardNo,Integer auditStatus,Integer dataSourse,String shopName,Boolean isTest,String nickName,String openId,Integer PageIndex,Integer  PageSize,Boolean IsSelectAll);
 }

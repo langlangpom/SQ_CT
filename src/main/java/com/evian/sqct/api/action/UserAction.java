@@ -2,25 +2,35 @@ package com.evian.sqct.api.action;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.evian.sqct.annotation.TokenNotVerify;
 import com.evian.sqct.api.BaseAction;
+import com.evian.sqct.bean.jwt.TokenDTO;
 import com.evian.sqct.bean.user.*;
+import com.evian.sqct.bean.wechat.oauth.AccessTokenRepDTO;
+import com.evian.sqct.exception.ResultException;
+import com.evian.sqct.response.ResultCode;
+import com.evian.sqct.response.ResultVO;
+import com.evian.sqct.service.BaseEnterpriseManager;
 import com.evian.sqct.service.BaseUserManager;
+import com.evian.sqct.service.IJsonWebTokenService;
+import com.evian.sqct.service.IWeixinApiService;
 import com.evian.sqct.util.CallBackPar;
-import com.evian.sqct.util.Constants;
 import com.evian.sqct.util.DES.WebConfig;
 import com.evian.sqct.util.QiniuConfig;
 import com.evian.sqct.util.QiniuFileSystemUtil;
+import com.qiniu.common.QiniuException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,10 +49,18 @@ public class UserAction extends BaseAction{
 	
 	@Autowired
 	private BaseUserManager baseUserManager;
-	
+	@Autowired
+	private BaseEnterpriseManager enterpriseManager;
+
+	@Autowired
+	private IJsonWebTokenService jwtService;
+
+	@Autowired
+	private IWeixinApiService weixinApiService;
+
 	/**
 	 * 商户登录
-	 * 
+	 *
 	 * @param account
 	 *            用户名
 	 * @param passWord
@@ -50,43 +68,30 @@ public class UserAction extends BaseAction{
 	 * @return
 	 * @throws Exception
 	 */
+	@TokenNotVerify
 	@RequestMapping("backLogin")
-	public Map<String, Object> backLogin(HttpServletRequest request ,HttpServletResponse response ,String account,String passWord) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		if(account==null||passWord==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
-		}
-		try {
-			Map<String,Object> userLogin = baseUserManager.userLogin(account, passWord,getIp(request));
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			if ("1".equals(userLogin.get("TAG"))) {
-				UserModel2 userModel = (UserModel2) userLogin.get("result");
-				resultMap.put("nickName", userModel.getName());
-				resultMap.put("photo", userModel.getPicture());
-				resultMap.put("userId", userModel.getId());
-				resultMap.put("eid", userModel.getEid());
-				resultMap.put("userAuthorization",
-						userModel.getUserAuthorization());
-				parMap.put("data", resultMap);
-			} else {
-				int code = Constants.CODE_FAIL_LOGIN;
-				String message = Constants.getCodeValue(code);
-				parMap.put("code", code);
-				parMap.put("message", message);
+	public ResultVO backLogin(HttpServletRequest request , HttpServletResponse response , @Valid BackLoginReqDTO dto){
+		ResultVO backLogin_v2Result = backLogin_v2(request, response, dto.getAccount(), dto.getPassWord());
+
+		if(backLogin_v2Result!=null){
+			Integer code = (Integer) backLogin_v2Result.getCode();
+			if(1==code){
+				Map<String,Object> data = (Map<String, Object>) backLogin_v2Result.getData();
+				UserModel3 userInfo = (UserModel3) data.get("userInfo");
+				if(userInfo!=null&&userInfo.getAccountId()!=null){
+					Integer accountId = userInfo.getAccountId();
+
+					JSONObject payload = new JSONObject();
+					payload.put("accountId",accountId);
+					TokenDTO token = jwtService.createToken(payload);
+					data.put("token",token);
+					token.setRegeditId(dto.getRegeditId());
+					baseUserManager.accountChange(accountId, dto.getSourceId(),token,dto.getPlatformId());
+				}
 			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
 		}
-		return parMap;
+
+		return backLogin_v2Result;
 	}
 	
 	/**
@@ -99,23 +104,23 @@ public class UserAction extends BaseAction{
 	 * @return
 	 * @throws Exception
 	 */
+	@TokenNotVerify
 	@RequestMapping("backLogin_v2.action")
-	public Map<String, Object> backLogin_v2(HttpServletRequest request ,HttpServletResponse response ,String account,String passWord) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO backLogin_v2(HttpServletRequest request ,HttpServletResponse response ,String account,String passWord){
 		if(account==null||passWord==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
 		Map<String,Object> result = new HashMap<>();
 		Map<String,Object> userLogin = baseUserManager.userLogin_v2(account, passWord);
 		if ("1".equals(userLogin.get("TAG"))) {
 			UserModel3 userModel = (UserModel3) userLogin.get("result");
+			if(userModel==null){
+				// 职员信息不存在
+				return new ResultVO(ResultCode.CODE_ERROR_OFFICE_NOT);
+			}
 			// 返回sign=superAdmin或者shopAdmin时，无需判断权限
 			String sign = userModel.getSign();
-			if(!("superAdmin".equals(sign)||"shopAdmin".equals(sign))){
+			if(!"superAdmin".equals(sign)){
 				Integer roleId = userModel.getRoleId();
 				List<Map<String, Object>> roleMenus = baseUserManager.Proc_Backstage_appMerchant_account_enterprise_role_menu_select(roleId);
 				result.put("roleMenus",roleMenus);
@@ -126,54 +131,43 @@ public class UserAction extends BaseAction{
 			List<Map<String, Object>> enterpriseMenus = baseUserManager.Proc_Backstage_appMerchant_account_enterprise_menu_select_forAppLogin(userModel.getEid());
 			result.put("enterpriseMenus",enterpriseMenus==null?new ArrayList<>():enterpriseMenus);
 
+			// 企业是否开启中台水叮咚提现管理
+			Map<String, Object> ifParamValue = enterpriseManager.switchSDDWithdrawDepositAudit(userModel.getEid());
+			boolean sddWithdrawDepositSwitch = false;
+			if(ifParamValue!=null){
+				String paramValue = (String) ifParamValue.get("paramValue");
+				sddWithdrawDepositSwitch = "1".equals(paramValue);
+			}
+			result.put("sddWithdrawDepositSwitch",sddWithdrawDepositSwitch);
 			result.put("userInfo",userModel);
 
-		}else {
-			int code = Constants.CODE_FAIL_LOGIN;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		parMap.put("data", result);
 
-		return parMap;
+		}else {
+			return new ResultVO(ResultCode.CODE_FAIL_LOGIN);
+		}
+
+		return new ResultVO(result);
 	}
-	
+
 	/**
 	 * 2.商户找回密码获取验证码
-	 * 
+	 *
 	 * @param cellphone
 	 *            手机号码
 	 * @return
 	 * @throws Exception
 	 */
 	@RequestMapping("retrievePwd.action")
-	public Map<String, Object> retrievePwd(String cellPhone,String ip) throws Exception {
+	public ResultVO retrievePwd(String cellPhone,String ip) throws Exception {
 		Map<String, Object> parMap = CallBackPar.getParMap();
 		if(cellPhone==null||ip==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			boolean isSuccess = baseUserManager.saveSMSFindPwd(cellPhone, ip);
-			if (!isSuccess) {
-				int code = Constants.CODE_NO_DENTIFYING_CODE;
-				String message = Constants.getCodeValue(code);
-				parMap.put("code", code);
-				parMap.put("message", message);
-			} 
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		boolean isSuccess = baseUserManager.saveSMSFindPwd(cellPhone, ip);
+		if (!isSuccess) {
+			return new ResultVO(ResultCode.CODE_NO_DENTIFYING_CODE);
 		}
-		return parMap;
+		return new ResultVO();
 	}
 	
 	/**
@@ -187,36 +181,19 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("identifyingCode.action")
-	public Map<String, Object> identifyingCode(String cellPhone,String msgCode,String npwd) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO identifyingCode(String cellPhone,String msgCode,String npwd) throws Exception {
 		if(cellPhone==null||msgCode==null||npwd==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			boolean isSuccess = baseUserManager.setSMSFindPwd(cellPhone,msgCode, npwd);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			if (isSuccess) {
-				resultMap.put("success", isSuccess);
-				parMap.put("data", resultMap);
-			} else {
-				int code = Constants.CODE_ERROR_UPDATEPASS;
-				String message = Constants.getCodeValue(code);
-				parMap.put("code", code);
-				parMap.put("message", message);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		boolean isSuccess = baseUserManager.setSMSFindPwd(cellPhone,msgCode, npwd);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		if (isSuccess) {
+			resultMap.put("success", isSuccess);
+			return new ResultVO(resultMap);
+		} else {
+			return new ResultVO(ResultCode.CODE_ERROR_UPDATEPASS);
 		}
-		return parMap;
+
 	}
 	
 	/**
@@ -230,36 +207,19 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("identifyingCode_v2.action")
-	public Map<String, Object> identifyingCode_v2(String cellPhone,String msgCode,String npwd) throws Exception {
+	public ResultVO identifyingCode_v2(String cellPhone,String msgCode,String npwd) throws Exception {
 		Map<String, Object> parMap = CallBackPar.getParMap();
 		if(cellPhone==null||msgCode==null||npwd==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			boolean isSuccess = baseUserManager.setSMSFindPwd_v2(cellPhone,msgCode, npwd);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			if (isSuccess) {
-				resultMap.put("success", isSuccess);
-				parMap.put("data", resultMap);
-			} else {
-				int code = Constants.CODE_ERROR_UPDATEPASS;
-				String message = Constants.getCodeValue(code);
-				parMap.put("code", code);
-				parMap.put("message", message);
-			}
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		boolean isSuccess = baseUserManager.setSMSFindPwd_v2(cellPhone,msgCode, npwd);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		if (isSuccess) {
+			resultMap.put("success", isSuccess);
+			return new ResultVO(resultMap);
+		} else {
+			return new ResultVO(ResultCode.CODE_ERROR_UPDATEPASS);
 		}
-		return parMap;
 	}
 	
 	/**
@@ -268,21 +228,10 @@ public class UserAction extends BaseAction{
 	 */
 	@RequestMapping("getNowDbName.action")
 	public Map<String, Object> getNowDbName() throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
-		try {
-			String nowDbName = baseUserManager.getNowDbName();
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("success", nowDbName);
-			parMap.put("data", resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		String nowDbName = baseUserManager.getNowDbName();
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("success", nowDbName);
+		return resultMap;
 	}
 	
 	/**
@@ -296,61 +245,42 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("login.action")
-	public Map<String, Object> login(HttpServletRequest request ,HttpServletResponse response ,String account,String passWord) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO login(HttpServletRequest request ,HttpServletResponse response ,String account,String passWord) throws Exception {
 		if(account==null||passWord==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			//进行验证码验证
-			Map<String,Object> hashout = baseUserManager.clientLogin(account, passWord,"");
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			if (hashout.containsKey("status")) {
-				int status = (Integer) hashout.get("status");
-				int code = Constants.CODE_SUC;
-                switch (status) {
-                    case 0:
-                        resultMap.put("clientId", hashout.get("clientId").toString());
-                        resultMap.put("nickName", hashout.get("nickName").toString());
-                        resultMap.put("photo", hashout.get("photo").toString());
-                        parMap.put("data", resultMap);
-                        break;
-                    case 1:
-                        code = Constants.CODE_ERROR_CLIENT_ENABLE;
-                        break;
-                    case 2:
-                        code = Constants.CODE_ERROR_NO_REGISTER;
-                        break;
-                    case 3:
-                        code = Constants.CODE_ERROR_LOGIN_PARAM;
-                        break;
-                    default:
-                        code = Constants.CODE_ERROR_LOGIN_PARAM;
-                        break;
-                }
-                String message = Constants.getCodeValue(code);
-				parMap.put("code", code);
-				parMap.put("message", message);
-			} else {
-				int code = Constants.CODE_ERROR_SYSTEM;
-				String message = Constants.getCodeValue(code);
-				parMap.put("code", code);
-				parMap.put("message", message);
+		//进行验证码验证
+		Map<String,Object> hashout = baseUserManager.clientLogin(account, passWord,"");
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		if (hashout.containsKey("status")) {
+			int status = (Integer) hashout.get("status");
+			ResultCode code = ResultCode.CODE_SUC;
+			ResultVO resultVO = new ResultVO();
+			switch (status) {
+				case 0:
+					resultMap.put("clientId", hashout.get("clientId").toString());
+					resultMap.put("nickName", hashout.get("nickName").toString());
+					resultMap.put("photo", hashout.get("photo").toString());
+					resultVO.setData(resultMap);
+					break;
+				case 1:
+					code = ResultCode.CODE_ERROR_CLIENT_ENABLE;
+					break;
+				case 2:
+					code = ResultCode.CODE_ERROR_NO_REGISTER;
+					break;
+				case 3:
+					code = ResultCode.CODE_ERROR_LOGIN_PARAM;
+					break;
+				default:
+					code = ResultCode.CODE_ERROR_LOGIN_PARAM;
+					break;
 			}
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+			resultVO.setCode(code);
+			return resultVO;
+		} else {
+			return new ResultVO(ResultCode.CODE_ERROR_SYSTEM);
 		}
-		return parMap;
 	}
 	
 	/**
@@ -364,52 +294,34 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("getCode.action")
-	public Map<String, Object> getCode(HttpServletRequest request ,HttpServletResponse response ,String cellphone,String weixinId) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO getCode(HttpServletRequest request ,HttpServletResponse response ,String cellphone,String weixinId) throws Exception {
 		if(cellphone==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			//进行验证码验证
-			String getCode = baseUserManager.clientRegisterGetCode(cellphone, getIp(request), "", 0);
-			int code = Constants.CODE_SUC;
-			
-			switch (getCode) {
-			case "E00000":
-				break;
-			case "C00001":
-				// 手机号码已被注册
-				code = Constants.CODE_ERROR_CELL_PHONE_NUMBER_ALREADY_IN_USE;
-				break;
-			case "C00003":
-				// 操作频繁,稍后再试
-				code = Constants.CODE_OPERATION_OFTEN;
-				break;
-			case "C00040":
-				// 微信ID已被绑定
-				code = Constants.CODE_WECHAT_ID_ALREADY_BINDING;
-				break;
-			default:
-				code = Constants.CODE_ERROR_SYSTEM;
-				break;
-			}
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		//进行验证码验证
+		String getCode = baseUserManager.clientRegisterGetCode(cellphone, getIp(request), "", 0);
+		ResultCode code = ResultCode.CODE_SUC;
+
+		switch (getCode) {
+		case "E00000":
+			break;
+		case "C00001":
+			// 手机号码已被注册
+			code = ResultCode.CODE_ERROR_CELL_PHONE_NUMBER_ALREADY_IN_USE;
+			break;
+		case "C00003":
+			// 操作频繁,稍后再试
+			code = ResultCode.CODE_OPERATION_OFTEN;
+			break;
+		case "C00040":
+			// 微信ID已被绑定
+			code = ResultCode.CODE_WECHAT_ID_ALREADY_BINDING;
+			break;
+		default:
+			code = ResultCode.CODE_ERROR_SYSTEM;
+			break;
 		}
-		return parMap;
+		return new ResultVO(code);
 	}
 	
 	/**
@@ -423,92 +335,72 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("verifyCode.action")
-	public Map<String, Object> verifyCode(HttpServletRequest request ,HttpServletResponse response ,String cellphone,String code,String passWord,String sdkType,String mobileIMEL,String mobileType,String sdkVer,Integer cityId,Integer citycode,String weixinId,String location,String regSource,String equipment,String authorizer_appid) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO verifyCode(HttpServletRequest request ,HttpServletResponse response ,String cellphone,String code,String passWord,String sdkType,String mobileIMEL,String mobileType,String sdkVer,Integer cityId,Integer citycode,String weixinId,String location,String regSource,String equipment,String authorizer_appid) throws Exception {
 		if(cellphone==null||code==null||passWord==null||cityId==null||citycode==null) {
-			int code1 = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code1);
-			parMap.put("code", code1);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
+		if(weixinId==null) {
+			weixinId = "";
+		}
+		if(authorizer_appid ==null) {
+			authorizer_appid = "";
+		}
+		//根据坐标查出cityId
+		if (cityId == 0) {
+			if (citycode > 0) {
+				Ecity ecity = baseUserManager.getCityByCode(citycode);
+				if (ecity != null) {
+					cityId = ecity.getCityId();
+				}
+			} else {
+				/*if (location!=null&&location.length() > 5 && location.indexOf(",") > 2) {
+					//反解析地址
+					CityParse cityM = BaiDuPortAnalysis.getCityParse(params.get("location"));
+					if (cityM != null) {
+						Ecity ecity = baseCityManager.getCityByCodeDao(cityM.getCityCode());
+						if (ecity != null) {
+							cityId = ecity.getCityId();
+						}
+					}
+				}*/
+			}
+		}
 
-			if(weixinId==null) {
-				weixinId = "";
+		//1:公众号 2:小程序 3:APP
+		int apptype = 3;
+		if (equipment!=null) {
+			if (equipment.equals("wxLiteapp")) {
+				apptype = 2;
+			} else if (equipment.equals("wx")) {
+				apptype = 1;
 			}
-			if(authorizer_appid ==null) {
-				authorizer_appid = "";
-			}
-			//根据坐标查出cityId
-            if (cityId == 0) {
-                if (citycode > 0) {
-                    Ecity ecity = baseUserManager.getCityByCode(citycode);
-                    if (ecity != null) {
-                        cityId = ecity.getCityId();
-                    }
-                } else {
-                    /*if (location!=null&&location.length() > 5 && location.indexOf(",") > 2) {
-                        //反解析地址
-                        CityParse cityM = BaiDuPortAnalysis.getCityParse(params.get("location"));
-                        if (cityM != null) {
-                            Ecity ecity = baseCityManager.getCityByCodeDao(cityM.getCityCode());
-                            if (ecity != null) {
-                                cityId = ecity.getCityId();
-                            }
-                        }
-                    }*/
-                }
-            }
-			
-            //1:公众号 2:小程序 3:APP
-            int apptype = 3;
-            if (equipment!=null) {
-                if (equipment.equals("wxLiteapp")) {
-                    apptype = 2;
-                } else if (equipment.equals("wx")) {
-                    apptype = 1;
-                }
-            }
-            
-            if(regSource==null) {
-            	regSource = "微信关注";
-            }
-            Map<String, Object> hashout = baseUserManager.registerVerifyCode(cellphone, passWord, code, sdkType, mobileIMEL, mobileType, sdkVer, weixinId, location, cityId, authorizer_appid==null?"":authorizer_appid, 0, apptype, regSource);
-            Map<String, Object> resultMap = new HashMap<String, Object>();
-            if (hashout.size() > 0) {
-                String code2 = hashout.get("result").toString();
-                //生成身份，返回数据
-                if ("E00000".equals(code2)) {
-                    resultMap.put("clientId", hashout.get("clientId"));
-                    //客户ID
-                    Integer.valueOf(hashout.get("cId").toString());
-                    /*if (cityId > 0) {
-                        //注册赠送优惠券
-                        Map<String, String> imaMap = baseUserManager.regeditZongSongCodeDao(equipment, cellphone, cid, cityId, apptype, 0);
-                        logger.info("[用户注册赠送优惠券: 手机号:{} 客户ID:{} 城市ID:{} 企业ID:{} 结果:{}]", new Object[]{params.get("cellphone"), cid, cityId, tokenId, imaMap});
-                        if (imaMap.containsKey("TAG") && imaMap.get("TAG").equals("1")) {
-                            resultMap.put("typeName", imaMap.get("typeName").toString());
-                        }
-                    }*/
-                }
-            } else {
-    			int code1 = Constants.CODE_ERROR_SYSTEM;
-    			String message = Constants.getCodeValue(code1);
-    			parMap.put("code", code1);
-    			parMap.put("message", message);
-            }
-            
-            parMap.put("data", resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code1 = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code1);
-			parMap.put("code", code1);
-			parMap.put("message", message);
 		}
-		return parMap;
+
+		if(regSource==null) {
+			regSource = "微信关注";
+		}
+		Map<String, Object> hashout = baseUserManager.registerVerifyCode(cellphone, passWord, code, sdkType, mobileIMEL, mobileType, sdkVer, weixinId, location, cityId, authorizer_appid==null?"":authorizer_appid, 0, apptype, regSource);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		if (hashout.size() > 0) {
+			String code2 = hashout.get("result").toString();
+			//生成身份，返回数据
+			if ("E00000".equals(code2)) {
+				resultMap.put("clientId", hashout.get("clientId"));
+				//客户ID
+				Integer.valueOf(hashout.get("cId").toString());
+				/*if (cityId > 0) {
+					//注册赠送优惠券
+					Map<String, String> imaMap = baseUserManager.regeditZongSongCodeDao(equipment, cellphone, cid, cityId, apptype, 0);
+					logger.info("[用户注册赠送优惠券: 手机号:{} 客户ID:{} 城市ID:{} 企业ID:{} 结果:{}]", new Object[]{params.get("cellphone"), cid, cityId, tokenId, imaMap});
+					if (imaMap.containsKey("TAG") && imaMap.get("TAG").equals("1")) {
+						resultMap.put("typeName", imaMap.get("typeName").toString());
+					}
+				}*/
+			}
+		} else {
+			return new ResultVO(ResultCode.CODE_ERROR_SYSTEM);
+		}
+		return new ResultVO(resultMap);
 	}
 
 	/**
@@ -522,55 +414,38 @@ public class UserAction extends BaseAction{
 	 * @return
 	 */
 	@RequestMapping("updateHealthCertificate.action")
-	 public Map<String, Object> updateHealthCertificate(Integer accountId,Integer eid,String headImg,String fullname,String healthCertificateImg,String SQ_IDCard){
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	 public ResultVO updateHealthCertificate(Integer accountId,Integer eid,String headImg,String fullname,String healthCertificateImg,String SQ_IDCard) throws QiniuException {
 		if(accountId==null||eid==null||headImg==null||fullname==null||healthCertificateImg==null||SQ_IDCard==null) {
-			int code1 = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code1);
-			parMap.put("code", code1);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			String upResult = QiniuFileSystemUtil.uploadShearPic(headImg);
-			if (!StringUtils.isEmpty(upResult)) {
-				JSONObject ject = JSON.parseObject(upResult);
-				if (!StringUtils.isEmpty((String) ject.get("hash"))
-						&& !StringUtils.isEmpty((String) ject.get("key"))) {
+		String upResult = QiniuFileSystemUtil.uploadShearPic(headImg);
+		if (!StringUtils.isEmpty(upResult)) {
+			JSONObject ject = JSON.parseObject(upResult);
+			if (!StringUtils.isEmpty((String) ject.get("hash"))
+					&& !StringUtils.isEmpty((String) ject.get("key"))) {
 
-					upResult = QiniuConfig.namespace + (String) ject.get("key");
-				}
+				upResult = QiniuConfig.namespace + (String) ject.get("key");
 			}
-			String upResult2 = QiniuFileSystemUtil.uploadShearPic(healthCertificateImg);
-			if (!StringUtils.isEmpty(upResult2)) {
-				JSONObject ject = JSON.parseObject(upResult2);
-				if (!StringUtils.isEmpty((String) ject.get("hash"))
-						&& !StringUtils.isEmpty((String) ject.get("key"))) {
+		}
+		String upResult2 = QiniuFileSystemUtil.uploadShearPic(healthCertificateImg);
+		if (!StringUtils.isEmpty(upResult2)) {
+			JSONObject ject = JSON.parseObject(upResult2);
+			if (!StringUtils.isEmpty((String) ject.get("hash"))
+					&& !StringUtils.isEmpty((String) ject.get("key"))) {
 
-					upResult2 = QiniuConfig.namespace + (String) ject.get("key");
-				}
+				upResult2 = QiniuConfig.namespace + (String) ject.get("key");
 			}
-			Integer updateHealthCertificate = baseUserManager.updateHealthCertificate(accountId, eid, upResult, fullname,  upResult2,SQ_IDCard);
-			if(updateHealthCertificate.intValue()!=1) {
-				logger.error("[project:{}] [updateHealthCertificate:{}]", new Object[] {
-						WebConfig.projectName, updateHealthCertificate });
-				// 修改失败
-				int code1 = Constants.CODE_ERROR_UPDATE;
-				String message = Constants.getCodeValue(code1);
-				parMap.put("code", code1);
-				parMap.put("message", message);
-			}
+		}
+		Integer updateHealthCertificate = baseUserManager.updateHealthCertificate(accountId, eid, upResult, fullname,  upResult2,SQ_IDCard);
+		if(updateHealthCertificate.intValue()!=1) {
+			logger.error("[project:{}] [updateHealthCertificate:{}]", new Object[] {
+					WebConfig.projectName, updateHealthCertificate });
+			// 修改失败
+			return new ResultVO(ResultCode.CODE_ERROR_UPDATE);
+		}
 			
 			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code1 = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code1);
-			parMap.put("code", code1);
-			parMap.put("message", message);
-		}
-		return parMap;
+		return new ResultVO();
 	}
 
 	/**
@@ -581,37 +456,21 @@ public class UserAction extends BaseAction{
 	 * @return
 	 */
 	@RequestMapping("updateAppMerchantJpush.action")
-	public Map<String, Object> updateAppMerchantJpush(Integer accountId,String regeditId,Integer sourceId){
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO updateAppMerchantJpush(Integer accountId,String regeditId,Integer sourceId,Integer platformId){
 		if(accountId==null||regeditId==null||sourceId==null) {
-			int code1 = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code1);
-			parMap.put("code", code1);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Integer updateAppMerchantJpush = baseUserManager.updateAppMerchantJpush(accountId, regeditId, sourceId);
-			if(updateAppMerchantJpush.intValue()!=1) {
-				logger.error("[project:{}] [updateHealthCertificate:{}]", new Object[] {
-						WebConfig.projectName, updateAppMerchantJpush });
-				// 修改失败
-				int code1 = Constants.CODE_ERROR_UPDATE;
-				String message = Constants.getCodeValue(code1);
-				parMap.put("code", code1);
-				parMap.put("message", message);
-			}
-			
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code1 = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code1);
-			parMap.put("code", code1);
-			parMap.put("message", message);
+		if(platformId==null){
+			platformId = 1;
 		}
-		return parMap;
+		Integer updateAppMerchantJpush = baseUserManager.updateAppMerchantJpush(accountId, regeditId, sourceId,platformId);
+		if(updateAppMerchantJpush.intValue()!=1) {
+			logger.error("[project:{}] [updateHealthCertificate:{}]", new Object[] {
+					WebConfig.projectName, updateAppMerchantJpush });
+			// 修改失败
+			return new ResultVO(ResultCode.CODE_ERROR_UPDATE);
+		}
+		return new ResultVO();
 	}
 	
 
@@ -621,29 +480,14 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("clientAddressSelect.action")
-	public Map<String, Object> clientAddressSelect(Integer clientId,Integer eid) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO clientAddressSelect(Integer clientId,Integer eid) throws Exception {
 		if(clientId==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Map<String, Object>> selectMyVouchers = baseUserManager.clientAddressSelect(clientId, eid);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("address", selectMyVouchers);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> selectMyVouchers = baseUserManager.clientAddressSelect(clientId, eid);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("address", selectMyVouchers);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -652,29 +496,14 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("findEnterpriseStaff.action")
-	public Map<String, Object> findEnterpriseStaff(Integer eid,String shopName,Integer shopId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findEnterpriseStaff(Integer eid,String shopName,Integer shopId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) throws Exception {
 		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<StaffDTO> staffs = baseUserManager.Proc_Backstage_staff_select(eid,shopName,shopId, PageIndex, PageSize, IsSelectAll);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("staffs", staffs);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<StaffDTO> staffs = baseUserManager.Proc_Backstage_staff_select(eid,shopName,shopId, PageIndex, PageSize, IsSelectAll);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("staffs", staffs);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -683,37 +512,20 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("findUser.action")
-	public Map<String, Object> findUser(String account) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findUser(String account) throws Exception {
 		if(account==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Integer accountId = baseUserManager.findUser(account);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			if(accountId!=null) {
-				resultMap.put("accountId", accountId);
-				setData(parMap, resultMap);
-			}else {
-				int code = Constants.CODE_ERROR_NOUSER;
-				String message = Constants.getCodeValue(code);
-				parMap.put("code", code);
-				parMap.put("message", message);
-			}
-			
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+		Integer accountId = baseUserManager.findUser(account);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		if(accountId!=null) {
+			resultMap.put("accountId", accountId);
+			return new ResultVO(resultMap);
+		}else {
+			return new ResultVO(ResultCode.CODE_ERROR_NOUSER);
 		}
-		return parMap;
+
+
 	}
 	
 
@@ -723,29 +535,14 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("findVendorShopAdmin.action")
-	public Map<String, Object> findVendorShopAdmin(Integer eid,Integer shopId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findVendorShopAdmin(Integer eid,Integer shopId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) throws Exception {
 		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<VendorShopAdministratorDTO> staffs = baseUserManager.selectVendorShopAdmin(eid,shopId, PageIndex, PageSize, IsSelectAll);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("staffs", staffs);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<VendorShopAdministratorDTO> staffs = baseUserManager.selectVendorShopAdmin(eid,shopId, PageIndex, PageSize, IsSelectAll);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("staffs", staffs);
+		return new ResultVO(resultMap);
 	}
 	
 	
@@ -755,79 +552,63 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("staffAdd.action")
-	public Map<String, Object> staffAdd(Integer shopId,Integer eid,String name,String phone,String picture,String SQ_remark,String SQ_IDCard,String workCard,String healthCard,String creditCard,String SQ_staffNO,Boolean isRelevanceEvian) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO staffAdd(Integer shopId,Integer eid,String name,String phone,String picture,String SQ_remark,String SQ_IDCard,String workCard,String healthCard,String creditCard,String SQ_staffNO,Boolean isRelevanceEvian) throws Exception {
 		if(eid==null||shopId==null||phone==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			if(!StringUtils.isEmpty(picture)) {
-				String upResult = QiniuFileSystemUtil.uploadShearPic(picture);
-				if (!StringUtils.isEmpty(upResult)) {
-					JSONObject ject = JSON.parseObject(upResult);
-					if (!StringUtils.isEmpty((String) ject.get("hash"))
-							&& !StringUtils.isEmpty((String) ject.get("key"))) {
+		if(!StringUtils.isEmpty(picture)) {
+			String upResult = QiniuFileSystemUtil.uploadShearPic(picture);
+			if (!StringUtils.isEmpty(upResult)) {
+				JSONObject ject = JSON.parseObject(upResult);
+				if (!StringUtils.isEmpty((String) ject.get("hash"))
+						&& !StringUtils.isEmpty((String) ject.get("key"))) {
 
-						upResult = QiniuConfig.namespace + (String) ject.get("key");
-					}
+					upResult = QiniuConfig.namespace + (String) ject.get("key");
 				}
-				picture = upResult;
 			}
-			
-			if(!StringUtils.isEmpty(SQ_IDCard)) {
-				String upResult = QiniuFileSystemUtil.uploadShearPic(SQ_IDCard);
-				if (!StringUtils.isEmpty(upResult)) {
-					JSONObject ject = JSON.parseObject(upResult);
-					if (!StringUtils.isEmpty((String) ject.get("hash"))
-							&& !StringUtils.isEmpty((String) ject.get("key"))) {
-
-						upResult = QiniuConfig.namespace + (String) ject.get("key");
-					}
-				}
-				SQ_IDCard = upResult;
-			}
-			
-			if(!StringUtils.isEmpty(healthCard)) {
-				String upResult = QiniuFileSystemUtil.uploadShearPic(healthCard);
-				if (!StringUtils.isEmpty(upResult)) {
-					JSONObject ject = JSON.parseObject(upResult);
-					if (!StringUtils.isEmpty((String) ject.get("hash"))
-							&& !StringUtils.isEmpty((String) ject.get("key"))) {
-						
-						upResult = QiniuConfig.namespace + (String) ject.get("key");
-					}
-				}
-				healthCard = upResult;
-			}
-			
-			if(!StringUtils.isEmpty(creditCard)) {
-				String upResult = QiniuFileSystemUtil.uploadShearPic(creditCard);
-				if (!StringUtils.isEmpty(upResult)) {
-					JSONObject ject = JSON.parseObject(upResult);
-					if (!StringUtils.isEmpty((String) ject.get("hash"))
-							&& !StringUtils.isEmpty((String) ject.get("key"))) {
-						
-						upResult = QiniuConfig.namespace + (String) ject.get("key");
-					}
-				}
-				creditCard = upResult;
-			}
-			
-			
-			baseUserManager.Proc_Backstage_staff_add(shopId, eid, name, phone, picture, SQ_remark, SQ_IDCard, workCard, healthCard, creditCard, SQ_staffNO, isRelevanceEvian);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+			picture = upResult;
 		}
-		return parMap;
+
+		if(!StringUtils.isEmpty(SQ_IDCard)) {
+			String upResult = QiniuFileSystemUtil.uploadShearPic(SQ_IDCard);
+			if (!StringUtils.isEmpty(upResult)) {
+				JSONObject ject = JSON.parseObject(upResult);
+				if (!StringUtils.isEmpty((String) ject.get("hash"))
+						&& !StringUtils.isEmpty((String) ject.get("key"))) {
+
+					upResult = QiniuConfig.namespace + (String) ject.get("key");
+				}
+			}
+			SQ_IDCard = upResult;
+		}
+
+		if(!StringUtils.isEmpty(healthCard)) {
+			String upResult = QiniuFileSystemUtil.uploadShearPic(healthCard);
+			if (!StringUtils.isEmpty(upResult)) {
+				JSONObject ject = JSON.parseObject(upResult);
+				if (!StringUtils.isEmpty((String) ject.get("hash"))
+						&& !StringUtils.isEmpty((String) ject.get("key"))) {
+
+					upResult = QiniuConfig.namespace + (String) ject.get("key");
+				}
+			}
+			healthCard = upResult;
+		}
+
+		if(!StringUtils.isEmpty(creditCard)) {
+			String upResult = QiniuFileSystemUtil.uploadShearPic(creditCard);
+			if (!StringUtils.isEmpty(upResult)) {
+				JSONObject ject = JSON.parseObject(upResult);
+				if (!StringUtils.isEmpty((String) ject.get("hash"))
+						&& !StringUtils.isEmpty((String) ject.get("key"))) {
+
+					upResult = QiniuConfig.namespace + (String) ject.get("key");
+				}
+			}
+			creditCard = upResult;
+		}
+		baseUserManager.Proc_Backstage_staff_add(shopId, eid, name, phone, picture, SQ_remark, SQ_IDCard, workCard, healthCard, creditCard, SQ_staffNO, isRelevanceEvian);
+		return new ResultVO();
 	}
 	
 
@@ -837,29 +618,14 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("findUserIsRegisterWx.action")
-	public Map<String, Object> findUserIsRegisterWx(String account,Integer eid) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findUserIsRegisterWx(String account,Integer eid) throws Exception {
 		if(account==null||eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Boolean isWXRegister = baseUserManager.selectWxIsRegister(eid, account);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("isWXRegister", isWXRegister);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		Boolean isWXRegister = baseUserManager.selectWxIsRegister(eid, account);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("isWXRegister", isWXRegister);
+		return new ResultVO(resultMap);
 	}
 	
 	/**
@@ -979,27 +745,13 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("tuikeManagerCodes.action")
-	public Map<String, Object> tuikeManagerCodes(String shopCode,Integer eid,Integer shopId,String beginTime,String endTime,String managerFullName,String tuikeFullName,String shopName,String eName,Boolean isEnable,String managerAccount,String tuikeAccount,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) throws Exception {
+	public ResultVO tuikeManagerCodes(String shopCode,Integer eid,Integer shopId,String beginTime,String endTime,String managerFullName,String tuikeFullName,String shopName,String eName,Boolean isEnable,String managerAccount,String tuikeAccount,Integer PageIndex,Integer PageSize,Boolean IsSelectAll) throws Exception {
 		Map<String, Object> parMap = CallBackPar.getParMap();
 		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			Map<String, Object> resultMap = baseUserManager.tuikeManagerCodes(shopCode, eid, shopId, beginTime, endTime, managerFullName, tuikeFullName, shopName, eName, isEnable, managerAccount, tuikeAccount, PageIndex, PageSize, IsSelectAll);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		Map<String, Object> resultMap = baseUserManager.tuikeManagerCodes(shopCode, eid, shopId, beginTime, endTime, managerFullName, tuikeFullName, shopName, eName, isEnable, managerAccount, tuikeAccount, PageIndex, PageSize, IsSelectAll);
+		return new ResultVO(resultMap);
 	}
 
 	/**
@@ -1124,29 +876,14 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("isExistEnterpriseStaff.action")
-	public Map<String, Object> isExistEnterpriseStaff(Integer eid,String phone) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO isExistEnterpriseStaff(Integer eid,String phone) throws Exception {
 		if(eid==null||phone==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<StaffDTO> staffs = baseUserManager.Proc_Backstage_staff_select(eid,phone);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("staffs", staffs);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<StaffDTO> staffs = baseUserManager.Proc_Backstage_staff_select(eid,phone);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("staffs", staffs);
+		return new ResultVO(resultMap);
 	}
 
 	/**
@@ -1173,29 +910,14 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("findEServiceUserlistByEid.action")
-	public Map<String, Object> findEServiceUserlistByEid(Integer eid) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO findEServiceUserlistByEid(Integer eid) throws Exception {
 		if(eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
-		try {
-			List<Map<String, Object>> serverUserList = baseUserManager.selectEServiceUserlistByEid(eid);
-			Map<String, Object> resultMap = new HashMap<String, Object>();
-			resultMap.put("serverUsers", serverUserList);
-			setData(parMap, resultMap);
-		} catch (Exception e) {
-			logger.error("[project:{}] [exception:{}]", new Object[] {
-					WebConfig.projectName, e });
-			int code = Constants.CODE_ERROR_SYSTEM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-		}
-		return parMap;
+		List<Map<String, Object>> serverUserList = baseUserManager.selectEServiceUserlistByEid(eid);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("serverUsers", serverUserList);
+		return new ResultVO(resultMap);
 	}
 
 	/**
@@ -1204,14 +926,9 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("roleMenuSelect.action")
-	public Map<String, Object> roleMenuSelect(Integer roleId,Integer eid) throws Exception {
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO roleMenuSelect(Integer roleId,Integer eid) throws Exception {
 		if(roleId==null||eid==null) {
-			int code = Constants.CODE_ERROR_PARAM;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
 
 		Map<String, Object> resultMap = new HashMap<String, Object>();
@@ -1221,9 +938,8 @@ public class UserAction extends BaseAction{
 		List<Map<String, Object>> enterpriseMenus = baseUserManager.Proc_Backstage_appMerchant_account_enterprise_menu_select_forAppLogin(eid);
 		resultMap.put("enterpriseMenus",enterpriseMenus==null?new ArrayList<>():enterpriseMenus);
 
-		setData(parMap, resultMap);
 
-		return parMap;
+		return new ResultVO(resultMap);
 	}
 
 	/**
@@ -1232,22 +948,182 @@ public class UserAction extends BaseAction{
 	 * @throws Exception
 	 */
 	@RequestMapping("searchingAccount.action")
-	public Map<String,Object> searchingAccount(String account){
-		Map<String, Object> parMap = CallBackPar.getParMap();
+	public ResultVO searchingAccount(String account){
 		if(account == null){
-			setERROR_PARAM(parMap);
-			return parMap;
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
 		}
 		EclientDTO dto = baseUserManager.searchingAccount(account);
 		if(dto.getClientId()!=null){
-			setData(parMap,dto);
+			return new ResultVO(dto);
 		}else{
 			// 用户不存在
-			int code = Constants.CODE_ERROR_NOUSER;
-			String message = Constants.getCodeValue(code);
-			parMap.put("code", code);
-			parMap.put("message", message);
+			return new ResultVO(ResultCode.CODE_ERROR_NOUSER);
 		}
-		return parMap;
 	}
+
+	/**
+	 * 175.删除用户的极光 Id
+	 * @param accountId	职员 ID
+	 * @param regeditId	极光注册 ID
+	 * @param sourceId	1:Android 2:iOS
+	 * @return
+	 */
+	@RequestMapping("removeAppMerchantJpush.action")
+	public ResultVO removeAppMerchantJpush(Integer accountId,String regeditId){
+		if(accountId==null||regeditId==null) {
+			return new ResultVO(ResultCode.CODE_ERROR_PARAM);
+		}
+		Integer updateAppMerchantJpush = baseUserManager.removeAppMerchantJpush(accountId, regeditId);
+		if(updateAppMerchantJpush.intValue()!=1) {
+			logger.error("[project:{}] [updateHealthCertificate:{}]", new Object[] {
+					WebConfig.projectName, updateAppMerchantJpush });
+			// 修改失败
+			return new ResultVO(ResultCode.CODE_ERROR_UPDATE);
+		}
+
+		return new ResultVO();
+	}
+
+
+	/**
+	 * 184.推客注销账号，经理解除推客关系
+	 */
+	@RequestMapping("unBoundLogOutShareTuiKe.action")
+	public String unBoundLogOutShareTuiKe(Integer eid,Integer type,String account,String identityCode,String appId) throws Exception{
+		String parMap = CallBackPar.getParString();
+		if(eid==null||type==null||account==null||identityCode==null||appId==null){
+			return setERROR_PARAM(parMap);
+		}
+		String shareApplyInfo = baseUserManager.unBoundLogOutShareTuiKe(eid,type,account,identityCode, appId);
+		return shareApplyInfo;
+	}
+
+	/**
+	 * 190.微信钱包实名认证
+	 */
+	@RequestMapping("saveEarningWXAutonym.action")
+	public String saveEarningWXAutonym(String identityCode,String openId,String autonym,String dealPass,String appId) {
+		String parMap = CallBackPar.getParString();
+		if(identityCode==null||openId==null||autonym==null||dealPass==null||appId==null){
+			return setERROR_PARAM(parMap);
+		}
+		String shareApplyInfo = baseUserManager.saveEarningWXAutonym(identityCode, openId, autonym, dealPass, appId);
+		return shareApplyInfo;
+	}
+
+	/**
+	 * 191.人人开店_我的账户情况
+	 */
+	@RequestMapping("myEarningInfo.action")
+	public String myEarningInfo(String identityCode,String appId) {
+		String parMap = CallBackPar.getParString();
+		if(identityCode==null||appId==null){
+			return setERROR_PARAM(parMap);
+		}
+		String shareApplyInfo = baseUserManager.myEarningInfo(identityCode, appId);
+		return shareApplyInfo;
+	}
+
+	/**
+	 * 192.用户提现到微信钱包
+	 */
+	@RequestMapping("txToWxWallet.action")
+	public String txToWxWallet(String identityCode,String openId,Double money,String dealPass,String appId) {
+		String parMap = CallBackPar.getParString();
+		if(identityCode==null||openId==null||money==null||dealPass==null||appId==null){
+			return setERROR_PARAM(parMap);
+		}
+		String shareApplyInfo = baseUserManager.txToWxWallet(identityCode, openId, money, dealPass, appId);
+		return shareApplyInfo;
+	}
+
+	/**
+	 * 193.上传用户反馈
+	 * @param dto
+	 * @param feedbackImg
+	 * @return
+	 */
+	@PostMapping("saveAppFeedback.action")
+	public ResultVO saveAppFeedback(@Valid AppFeedbackDTO dto,@RequestParam("feedbackImg") MultipartFile... feedbackImg){
+		try {
+			Integer integer = baseUserManager.saveAppFeedback(dto, feedbackImg);
+		} catch (IOException e) {
+			logger.error("{}",e);
+			return new ResultVO(ResultCode.CODE_FAIL_PHOTO);
+		}
+		return new ResultVO();
+	}
+
+	/**
+	 * 194.查询用户反馈
+	 * @param accountId
+	 * @param eid
+	 * @return
+	 */
+	@RequestMapping("findAppFeedback.action")
+	public Map<String,Object> findAppFeedback(Integer accountId,Integer eid){
+		Map<String,Object> map = new HashMap<>();
+		List<AppFeedbackDTO> appFeedbackDTO = baseUserManager.selectAppFeedback(accountId, eid);
+		map.put("appFeedbacks",appFeedbackDTO);
+		return map;
+	}
+
+	/**
+	 * 195.查询用户反馈
+	 * @param accountId
+	 * @param eid
+	 * @return
+	 */
+	@RequestMapping("refreshToken.action")
+	@TokenNotVerify
+	public Map<String,Object> refreshToken(String refresh_token){
+		Map<String,Object> map = new HashMap<>();
+		TokenDTO tokenDTO = baseUserManager.refreshToken(refresh_token);
+		return map;
+	}
+
+	/**
+	 * 201.查询企业店铺补货员
+	 * @return
+	 * @throws Exception
+	 */
+	@RequestMapping("findVendorReplenishmentPart.action")
+	public Map<String, Object> findVendorReplenishmentPart(VendorReplenishmentPartSelectDTO dto){
+		List<StaffDTO> staffs = baseUserManager.selectVendorReplenishmentPart(dto);
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		resultMap.put("staffs", staffs);
+		return resultMap;
+	}
+
+	/**
+	 * 204.退出登录
+	 * @return
+	 * @throws Exception
+	 */
+	@RequestMapping("logout.action")
+	public ResultVO logout(Integer accountId,HttpServletRequest request){
+		String regeditId = jwtService.getTokenRegeditId(request);
+		baseUserManager.logout(accountId,regeditId);
+		return new ResultVO();
+	}
+
+	/**
+	 * 219.微信授权登录
+	 * @return
+	 * @throws Exception
+	 */
+	@RequestMapping("wx_OAuth2.action")
+	public ResultVO wx_OAuth2(Integer accountId,HttpServletRequest request,String appId,String code){
+		AccessTokenRepDTO accessToken = weixinApiService.app_access_token(appId, "6e5fe3176fca0522e9a15ebcd842c944", code);
+		if(accessToken.getErrcode()==null||accessToken.getErrcode()==0){
+			Map<String,Object> result = new HashMap<>();
+			result.put("openid", accessToken.getOpenid());
+			result.put("unionid", accessToken.getUnionid());
+			result.put("account", "");
+			return new ResultVO(result);
+		}else{
+			return new ResultVO(accessToken.getErrcode(),accessToken.getErrmsg());
+		}
+	}
+
 }

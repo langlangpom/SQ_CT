@@ -1,6 +1,11 @@
 package com.evian.sqct.dao;
 
 import com.evian.sqct.bean.vendor.*;
+import com.evian.sqct.bean.vendor.input.*;
+import com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyBankRepDTO;
+import com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyBanknameReqDTO;
+import com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyProvinceRepDTO;
+import com.evian.sqct.bean.vendor.write.EWechatServicepaySubaccountApplyRepDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +19,7 @@ public interface IVendorDao {
 	
 	public List<VendorDoor> selectDoorAndProuct(Integer mainboardId,Integer eid,Integer doorIndex,Integer classId,String beginTime,String endTime,String account,String containerCode,Integer doorReplenishmentDays,Integer doorStatus,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 	
-	public Map<String, Object> selectDoorAndProuct_v2(Integer mainboardId,Integer eid,Integer replenishmentClassId,Integer PageIndex,Integer PageSize);
+	public Map<String, Object> selectDoorAndProuct_v2(ProcBackstageVendorProductSelectReqDTO dto);
 	
 	@Deprecated
 	public Map<String, Object> mainboardBindContainer(String mainboardNo,String containerCode,Integer eid);
@@ -25,9 +30,9 @@ public interface IVendorDao {
 	
 	public List<VendorShopContainer> VendorManage(Integer shopId);
 	
-	public List<Map<String,Object>> AppCustomerMainboardSelect(Integer eid,Integer shopId,Integer containerStatus,Integer accountId,String mainboardNoMD5);
+	public List<Map<String,Object>> AppCustomerMainboardSelect(Integer eid,Integer shopId,Integer containerStatus,Integer accountId,String mainboardNoMD5,Integer communityId);
 	
-	public String doorReplenishment(Integer eid,Integer mainboardId,Integer doorIndex,Integer productId,String account,Integer operatType,Integer wxId);
+	public String doorReplenishment(Integer eid,Integer mainboardId,Integer doorIndex,Integer productId,String account,Integer typeId, String typeName,Integer wxId,String location);
 	
 	public List<Map<String, Object>> vendorProductSelect(Integer id,String beginTime,String endTime,String productName,Integer eid,Boolean isLine,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 
@@ -37,7 +42,7 @@ public interface IVendorDao {
 	
 	public List<Map<String,Object>> vendorAppCustomerDoorProduct_statistics(Integer eid,Integer accountId,Boolean isAll);
 	
-	public List<Map<String,Object>> vendorAppCustomerDoorstatistics(Integer eid,Integer accountId);
+	public List<Map<String,Object>> vendorAppCustomerDoorstatistics(Integer eid,Integer accountId,Integer shopId);
 	
 	public List<Map<String,Object>> vendorAppCustomerMainboardContainerstatistics(Integer eid,Integer accountId);
 	
@@ -45,77 +50,77 @@ public interface IVendorDao {
 	
 	public String vendorAppCustomerMainboardContainerAddressEdit(Integer mainboardId,Integer accountId,String shopContainerName, String location, String containerAddress,Integer communityId) ;
 	
-	public List<Map<String,Object>> vendorAppCustomerMainboardContainerDoorStatistics(Integer eid,Integer accountId);
+	Map<String,Object> vendorAppCustomerMainboardContainerDoorStatistics(VendorDoorStatisticsDTO dto);
 	
-	public Map<String,Object> vendorSelectOrder(String beginTime,String endTime,String orderNo,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,String nickName,Integer doorIndex,Boolean isTest,String openId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+	Map<String,Object> vendorSelectOrder(String beginTime,String endTime,String orderNo,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,String nickName,Integer doorIndex,Integer accountId,Boolean isTest,String openId,Integer mainboardType,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 	
-	public Map<String,Object> vendorBatchDoorOpenEmpty(Integer mainboardId,Integer eid);
+	Map<String,Object> vendorBatchDoorOpenEmpty(Integer mainboardId,Integer eid);
 	
-	public String getNowDbName();
+	String getNowDbName();
 	
-	public String vendorGisCommunityOperat(String tag,Integer communityId,Integer districtId,String location,String communityName,Integer eid,Integer accountId,String account,String remark);
+	String vendorGisCommunityOperat(String tag,Integer communityId,Integer districtId,String location,String communityName,Integer eid,Integer accountId,String account,String remark);
 	
 	/**
 	 * 查询全部省份
 	 * @return
 	 */
-	public List<GisProvince> findAllProvince();
+	List<GisProvince> findAllProvince();
 	
 	/**
 	 * 查询全部城市
 	 * @return
 	 */
-	public List<GisCity> findAllCity();
+	List<GisCity> findAllCity();
 	
 	/**
 	 * 查询全部区域
 	 * @return
 	 */
-	public List<GisDistrict> findAllDistrict();
+	List<GisDistrict> findAllDistrict();
 	
 	/**
 	 * 查询全部社区
 	 * @return
 	 */
-	public List<GisCommunity> findAllCommunity();
+	List<GisCommunity> findAllCommunity();
 	
 	/**
 	 * 根据省份查询城市
 	 * @return
 	 */
-	public List<GisCity> findCityByProvince(Integer provinceId);
+	List<GisCity> findCityByProvince(Integer provinceId);
 	
 	/**
 	 * 根据城市查询区
 	 * @return
 	 */
-	public List<GisDistrict> findDistrictByCity(Integer cityId);
+	List<GisDistrict> findDistrictByCity(Integer cityId);
 	
 	/**
 	 * 根据区域查询社区
 	 * @return
 	 */
-	public List<Map<String,Object>> findCommunityBydistrict(Integer eid,Integer cityId,Integer districtId,Boolean isAudit,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+	List<Map<String,Object>> findCommunityBydistrict(Integer eid,Integer cityId,Integer districtId,Boolean isAudit,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 	
-	public Map<String, Object> vendorAdLedOrderSave(Integer clientId,String adContent,String beginDate,Integer dayQuantity,Double orderMoney,Double discountMonty,String codeNo,Double finalMoney,String communityNameJson);
+	Map<String, Object> vendorAdLedOrderSave(Integer clientId,String adContent,String beginDate,Integer dayQuantity,Double orderMoney,Double discountMonty,String codeNo,Double finalMoney,String communityNameJson);
 
 
 	/**
 	 * 根据社区Ids 查询社区信息
 	 * @param 
 	 */
-	public List<GisCommunity> findCommunityByCommunityId(String CommunityIds);
+	List<GisCommunity> findCommunityByCommunityId(String CommunityIds);
 	
-	public List<AdLedPrice> findAdLedPrices();
+	List<AdLedPrice> findAdLedPrices();
 	
 	/**
 	 * 查询广告价格
 	 * @param charQuantity
 	 * @return
 	 */
-	public List<AdLedPrice> findAdLedPricesByCharQuantity(int charQuantity);
+	List<AdLedPrice> findAdLedPricesByCharQuantity(int charQuantity);
 	
-	public List<Map<String, Object>> vendorAdLedOrderSelect(String beginTime,String endTime,Integer orderId,Boolean isPay,Integer orderStatus,String orderNo,String account,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+	List<Map<String, Object>> vendorAdLedOrderSelect(String beginTime,String endTime,Integer orderId,Boolean isPay,Integer orderStatus,String orderNo,String account,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 	
 	/**
 	 * 自动售货机用户代金券查询
@@ -123,11 +128,11 @@ public interface IVendorDao {
 	 * @param clientId		客户id
 	 * @return
 	 */
-	public List<Map<String, Object>> vendorCodeAppCustomerSelect(Integer eid,Integer clientId);
+	List<Map<String, Object>> vendorCodeAppCustomerSelect(Integer eid,Integer clientId);
 	
-	public List<VendorMainboard2> selectMainboardBymainboardNo(String mainboardNo);
+	List<VendorMainboard2> selectMainboardBymainboardNo(String mainboardNo);
 	
-	public List<Map<String, Object>> balanceProductidMainboardidAccountidCommunityidByhourSelect(Integer searchType,String beginTime,String endTime,Integer eid,Integer productId,Integer mainboardId,Integer accountId,Integer communityId);
+	List<Map<String, Object>> balanceProductidMainboardidAccountidCommunityidByhourSelect(Integer searchType,String beginTime,String endTime,Integer eid,Integer productId,Integer mainboardId,Integer accountId,Integer communityId);
 	
 	List<VendorMainboardContainer> selectAllMainboardContainer();
 	
@@ -139,9 +144,9 @@ public interface IVendorDao {
 	
 	List<Map<String, Object>> appMerchantAccountShopVendorSelect(Integer accountId);
 	
-	List<Map<String, Object>> viewVisitSelect(String beginTime,String endTime,String mainboardNoMD5,Boolean isTest,Integer communityId,Integer accountId,Integer eid,String openId, Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+	List<Map<String, Object>> viewVisitSelect(String beginTime,String endTime,String mainboardNoMD5,Boolean isTest,Integer communityId,Integer accountId,Integer shopId,Integer eid,String openId, Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 	
-	Map<String, Object> replenishmentStatistics(Integer eid,String beginTime,String endTime,String account,String productName,String productCode);
+	Map<String, Object> replenishmentStatistics(ProcBackstageVendorAppCustomerReplenishmentStatisticsDTO dto);
 	
 	Map<String, Object> productSupplementSelect(String beginTime,String endTime,Integer eid,String account,String productCode,String productName,String shopName,Boolean isTest, Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 	
@@ -151,7 +156,7 @@ public interface IVendorDao {
 	
 	Map<String, Object> repetitionBuySelect(String beginTime,String endTime,Boolean isSearchTimeForAuth,String eName,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,Integer doorIndex,Boolean isTest,Integer buyTimesMoreThen,String cellphone,Integer sortType,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 	
-	Map<String, Object> vendorMainboardOrProductIdBuySelect(Integer statisticsType,String beginTime,String endTime,String eName,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,Integer doorIndex,Boolean isTest,Integer buyTimesMoreThen,String cellphone,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+	Map<String, Object> vendorMainboardOrProductIdBuySelect(Integer statisticsType,String beginTime,String endTime,String eName,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,Integer doorIndex,Boolean isTest,Integer buyTimesMoreThen,Integer mainboardType,String cellphone,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 	
 	List<Map<String, Object>> vendorReplenishmentPlanSelect(Integer eid,Integer shopId,Integer containerId,Integer accountId,Integer PageIndex, Integer PageSize, Boolean IsSelectAll);
 	
@@ -170,7 +175,7 @@ public interface IVendorDao {
 	 * @param creater
 	 * @return
 	 */
-	Integer insertVendorReplenishmentPlan(Integer eid,Integer containerId,Integer shopId,String planName,Integer doorNum,Boolean isShopAll,String creater);
+	Integer insertVendorReplenishmentPlan(Integer eid,Integer containerId,Integer shopId,String planName,Integer doorNum,Boolean isShopAll,String creater,Integer warningNum);
 	
 	Integer removeUpdateVendorReplenishmentPlan(Integer planId);
 	
@@ -262,7 +267,7 @@ public interface IVendorDao {
 	 * 补货分类查询
 	 * @return
 	 */
-	List<VendorProductReplenishmentClass> selectVendorProductReplenishmentClass();
+	List<VendorProductReplenishmentClass> selectVendorProductReplenishmentClass(Integer eid);
 	
 	/**
 	 * 查询当前订单开锁状态
@@ -282,9 +287,8 @@ public interface IVendorDao {
 	 */
 	Map<String, Object> refundApply(Integer orderId,Double applyRefundMoney,String applyRemark,String cellphone,String openId);
 
-	Map<String, Object> Proc_Backstage_vendor_order_select_groupByMainboardIdOrProductId(Integer statisticsType,String beginTime,String endTime,String eName,Integer eid,String mainboardNo,Integer orderStatus,Integer dataSourse,Boolean isPay,String productName,String shopName,Integer doorIndex,Boolean isTest,Integer buyTimesMoreThen,String cellphone,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
 
-	Map<String, Object> Proc_Backstage_vendor_replenishment_select(String beginTime,String endTime,Integer eid,String account,String productCode,String productName,Boolean isTest,String containerCode,Integer doorIndex,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+	Map<String, Object> Proc_Backstage_vendor_replenishment_select(ReplenishmentRecordSelectReqDTO dto);
 
 	/**
 	 * 根据广告订单id 查询售货机管理人员
@@ -292,4 +296,101 @@ public interface IVendorDao {
 	 * @return
 	 */
 	List<Map<String, Object>> selectVendorManagementByLEDOrderId(Integer orderId);
+
+	/**
+	 * 货架补货
+	 * @param eid
+	 * @param mainboardId
+	 * @param productId
+	 * @param productQuantity
+	 * @param outProductId
+	 * @param outProductQuantity
+	 * @param account
+	 * @param operatType
+	 * @return
+	 */
+	String Proc_Backstage_vendor_AppCustomer_DoorReplenishment_Stand(Integer eid,Integer mainboardId,Integer productId,Integer productQuantity,Integer outProductId,Integer outProductQuantity,String account,Integer typeId, String typeName,String location);
+
+	String Proc_Backstage_order_compensateIntegral(Integer eid,Integer orderId,Integer accountId);
+
+	/**
+	 * @param planId
+	 * @param warningNum
+	 * @return
+	 */
+	Integer updateStockoutWarning(Integer planId,Integer warningNum);
+
+	List<Map<String,Object>> Proc_Backstage_vendor_replenishment_type_select(Integer eid);
+
+	List<Map<String,Object>> Proc_Backstage_vendor_replenishment_type_select_statistics(Integer statisticsType,String beginTime,String endTime,Integer eid,String mainboardNo,Integer operatType,Integer shopId	,Boolean isTest,Integer mainboardType,Integer PageIndex,Integer PageSize,Boolean IsSelectAll);
+
+	/**
+	 * 用户参与关注送券活动记录
+	 * @param eid
+	 * @param openId
+	 * @param clientId
+	 * @return
+	 */
+	Map<String,Object> selectVendorCouponToWechatActivityParticipationRecord(Integer eid, String openId,Integer clientId);
+
+	// 关注送券活动
+	Map<String,Object> selectVendorCouponToWechatActivity(Integer eid);
+
+	// 关注送券活动
+	List<Map<String,Object>> selectVendorCouponToWechatActivityDetail(Integer eid);
+
+	Map<String,Object> creationTempClientId(Integer eid,String openId,String appId,String unionId);
+
+	Map<String,Object> vendorLoginSelect(String openId);
+
+
+	/**
+	 * 查询企业红包活动
+	 * @return
+	 */
+	List<Map<String,Object>> selectRedPackActivity(Integer eid);
+
+	/**
+	 * 记录补货员扫码位置
+	 * @param dto
+	 * @return
+	 */
+	int insertVendorStaffScanCodeLocation(VendorStaffScanCodeLocationReqDTO dto);
+
+	Map<String,Object> Proc_XHX_staff_scan_location_select(ProcXHXStaffScanLocationSelectReqDTO dto);
+
+	int insertVendorStatusImageRecord(InsertVendorStatusImageRecordInputDTO dto);
+
+	Map<String,Object> Proc_XHX_vendor_status_image_record_select(ProcXhxVendorStatusImageRecordSelect dto);
+
+	VendorOrder selectVendorOrderByOrderId(Integer orderId);
+
+	VendorOrder selectVendorOrderByGroupSign(String groupSign);
+
+
+	Map<String,Object> Proc_Backstage_single_order_operat(ProcBackstageSingleOrderOperatReqDTO dto);
+
+	Map<String,Object> Proc_Backstage_single_order_select(ProcBackstageSingleOrderSelectReqDTO dto);
+
+
+	Map<String,Object> Proc_Backstage_single_product_select(ProcBackstageSingleProductSelectReqDTO dto);
+
+	List<EPaySubAccount> selectEPaySubAccountByAccount(String account);
+
+	int insertEPaySubAccount(EPaySubAccount ePaySubAccount);
+
+
+	int insertEWechatServicepaySubaccountApply(EWechatServicepaySubaccountApplyInputDTO dto);
+
+	List<EWechatServicepaySubaccountApplyRepDTO> selectEWechatServicepaySubaccountApplyByAccount(Integer accountId);
+
+	int updateEWechatServicepaySubaccountApply(EWechatServicepaySubaccountApplyInputDTO dto);
+
+	List<EWechatServicepaySubaccountApplyProvinceRepDTO> selectEWechatServicepaySubaccountApplyProvince();
+
+	List<EWechatServicepaySubaccountApplyBankRepDTO> selectEWechatServicepaySubaccountApplyBank();
+
+	List<EWechatServicepaySubaccountApplyBanknameReqDTO> selectEWechatServicepaySubaccountApplyBankname();
+
+	int updatesingleOrderStatus(Integer orderStatus,Integer orderId);
 }

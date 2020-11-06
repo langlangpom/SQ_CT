@@ -1,5 +1,8 @@
 package com.evian.sqct.util;
 
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.ResultSetExtractor;
+
 import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -8,9 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.ResultSetExtractor; 
 
 /**数据库ResultSet反射List类*/
 public class ResultSetToBeanHelper implements ResultSetExtractor<List<Map<String, Object>>>{
@@ -30,14 +30,8 @@ public class ResultSetToBeanHelper implements ResultSetExtractor<List<Map<String
 				Map<String, Object> map = new HashMap<String, Object>();
 				for (int i = 1; i <= meta.getColumnCount(); i++) {
 					String colName = meta.getColumnName(i);
-						Object value = rs.getObject(colName);
-						map.put(colName, value);
-						/*try {
-							Method setMethod = map.getClass().getMethod("put", Object.class);
-							setMethod.invoke(map, value);
-						} catch (Exception e) {
-							e.printStackTrace();
-						}*/
+					Object value = rs.getObject(colName);
+					map.put(colName, value);
 				}
 				lst.add(map);
 			}
@@ -90,6 +84,7 @@ public class ResultSetToBeanHelper implements ResultSetExtractor<List<Map<String
 	 * 谢海鑫
 	 * jdbcTemplate 返回集合 不用建立实体类 省事
 	 */
+	@Override
 	public List<Map<String, Object>> extractData(ResultSet rs) throws SQLException, DataAccessException {
 		ResultSetMetaData meta = rs.getMetaData();
 		List lst = new ArrayList();

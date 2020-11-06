@@ -13,9 +13,9 @@ public class Test03 {
 		System.out.println(decrypt_move);
 		decrypt_move = EvianHelp_DES.decrypt_move("971C4N11N115H11CTW37I1CH8H3339H1TLCHT8I71FHW87L911IWFHF8N418NHN97FWNLW9RILL1L8C311H7WI1NFHNHR4LF8H1TFW8WC7RLFWTR5N4I8CC999NW8CT313T7H9T894RW81THHRCN118RN5NNH45N", EvianHelp_DES.java_net_key,true);
 		System.out.println(decrypt_move);
-		String encrypt_move = EvianHelp_DES.encrypt_move("jdbc:sqlserver://10.16.108.27:6211;DatabaseName=EVIAN_CDSP",EvianHelp_DES.java_net_key,true);
+		String encrypt_move = EvianHelp_DES.encrypt_move("test2",EvianHelp_DES.java_net_key,true);
 		System.out.println(encrypt_move);
-		encrypt_move = EvianHelp_DES.encrypt_move("jdbc:sqlserver://10.16.108.27:6211;DatabaseName=EVIAN_CDSP_Vendor",EvianHelp_DES.java_net_key,true);
+		encrypt_move = EvianHelp_DES.encrypt_move("JKSDHCCIE_1235qauid&_%()_",EvianHelp_DES.java_net_key,true);
 		System.out.println(encrypt_move);
 		decrypt_move = EvianHelp_DES.decrypt_move(encrypt_move, EvianHelp_DES.java_net_key,true);
 		System.out.println(decrypt_move);

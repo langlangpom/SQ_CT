@@ -1,5 +1,6 @@
 package com.evian.sqct.bean.vendor;
 
+import java.io.Serializable;
 import java.util.Date;
 
 /**
@@ -7,8 +8,9 @@ import java.util.Date;
  * @author XHX
  * @Description 售货机状态
  */
-public class VendorMainboardContainer {
+public class VendorMainboardContainer implements Serializable {
 
+	private static final long serialVersionUID = 4737955773965085121L;
 	private String mainboardNo;
 	private Integer mainboardId;
 	private String containerCode;
@@ -24,7 +26,8 @@ public class VendorMainboardContainer {
 	private Date createTime;
 	private String creater;
 	private Integer communityId;
-	
+	private Integer mainboardType;
+
 	public String getMainboardNo() {
 		return mainboardNo;
 	}
@@ -115,6 +118,13 @@ public class VendorMainboardContainer {
 	public void setCommunityId(Integer communityId) {
 		this.communityId = communityId;
 	}
+	public Integer getMainboardType() {
+		return mainboardType;
+	}
+	public void setMainboardType(Integer mainboardType) {
+		this.mainboardType = mainboardType;
+	}
+
 	@Override
 	public String toString() {
 		return "VendorMainboardContainer [mainboardNo=" + mainboardNo + ", mainboardId=" + mainboardId
@@ -122,7 +132,7 @@ public class VendorMainboardContainer {
 				+ ", containerStatus=" + containerStatus + ", qrcodePath=" + qrcodePath + ", shopId=" + shopId
 				+ ", shopContainerName=" + shopContainerName + ", location=" + location + ", containerAddress="
 				+ containerAddress + ", remark=" + remark + ", createTime=" + createTime + ", creater=" + creater
-				+ ", communityId=" + communityId + "]";
+				+ ", communityId=" + communityId + ", mainboardType=" + mainboardType + "]";
 	}
 
 	

@@ -1,21 +1,6 @@
 package com.evian.sqct.util;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.ConnectException;
-import java.net.URI;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.servlet.http.HttpServletRequest;
-
+import com.evian.sqct.wxHB.ClientCustomSSL;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
@@ -34,7 +19,17 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.evian.sqct.wxHB.ClientCustomSSL;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.servlet.http.HttpServletRequest;
+import java.io.*;
+import java.net.ConnectException;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 
 
@@ -129,7 +124,9 @@ public class HttpClientUtil {
         }  
   
         return resultString;  
-    }  
+    }
+
+
   
     public static String doPost(String url) {  
         return doPost(url, null);  
@@ -251,8 +248,9 @@ public class HttpClientUtil {
 			try {
 				if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
 					HttpEntity entity = response.getEntity();
-					if (entity != null)
+					if (entity != null) {
 						msg = EntityUtils.toString(entity, CHARSET);
+					}
 				}else{
 					logger.error("{},[url:{}], [参数1:{}]", new Object[] {"访问接口错误，返回状态："+response.getStatusLine().getStatusCode(), url, basicNameValuePairToString(params)});
 				}
@@ -273,7 +271,7 @@ public class HttpClientUtil {
 	}
 	
 	private static String basicNameValuePairToString(List<BasicNameValuePair> list){
-		if(list == null || list.size() == 0)return "无参数";
+		if(list == null || list.size() == 0){return "无参数";}
 		String result = "";
 		for(BasicNameValuePair cur: list){
 			result += cur.getName() + "=" + cur.getValue() + "&";
@@ -304,6 +302,8 @@ public class HttpClientUtil {
 			conn.setDoOutput(true);
 			conn.setDoInput(true);
 			conn.setUseCaches(false);
+			conn.setConnectTimeout(20000);
+			conn.setReadTimeout(20000);
 			// 设置请求方式（GET/POST）
 			conn.setRequestMethod("POST");
 			conn.setRequestProperty("content-type", "application/x-www-form-urlencoded"); 
@@ -351,5 +351,178 @@ public class HttpClientUtil {
             ip = request.getRemoteAddr();  
         }  
 		return ip;
+	}
+
+	public static String UploadFile(String urlString,String filePath) throws Exception{
+		//返回结果
+		String result=null;
+		File file=new File(filePath);
+		if(!file.exists()||!file.isFile()){
+			throw new IOException("文件不存在");
+		}
+		URL url=new URL(urlString);
+		HttpsURLConnection conn=(HttpsURLConnection) url.openConnection();
+		conn.setRequestMethod("POST");//以POST方式提交表单
+		conn.setDoInput(true);
+		conn.setDoOutput(true);
+		conn.setUseCaches(false);//POST方式不能使用缓存
+		//设置请求头信息
+		conn.setRequestProperty("Connection", "Keep-Alive");
+		conn.setRequestProperty("Charset", "UTF-8");
+		//设置边界
+		String BOUNDARY="----------"+System.currentTimeMillis();
+		conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
+		//请求正文信息
+		//第一部分
+		StringBuilder sb=new StringBuilder();
+		sb.append("--");//必须多两条道
+		sb.append(BOUNDARY);
+		sb.append("\r\n");
+		sb.append("Content-Disposition: form-data;name=\"media\"; filename=\"" + file.getName()+"\"\r\n");
+		sb.append("Content-Type:application/octet-stream\r\n\r\n");
+		System.out.println("sb:"+sb);
+
+		//获得输出流
+		OutputStream out=new DataOutputStream(conn.getOutputStream());
+		//输出表头
+		out.write(sb.toString().getBytes("UTF-8"));
+		//文件正文部分
+		//把文件以流的方式 推送道URL中
+		DataInputStream din=new DataInputStream(new FileInputStream(file));
+		int bytes=0;
+		byte[] buffer=new byte[1024];
+		while((bytes=din.read(buffer))!=-1){
+			out.write(buffer,0,bytes);
+		}
+		din.close();
+		//结尾部分
+		byte[] foot=("\r\n--" + BOUNDARY + "--\r\n").getBytes("UTF-8");//定义数据最后分割线
+		out.write(foot);
+		out.flush();
+		out.close();
+		if(HttpsURLConnection.HTTP_OK==conn.getResponseCode()){
+
+			StringBuffer strbuffer=null;
+			BufferedReader reader=null;
+			try {
+				strbuffer=new StringBuffer();
+				reader=new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				String lineString=null;
+				while((lineString=reader.readLine())!=null){
+					strbuffer.append(lineString);
+
+				}
+				if(result==null){
+					result=strbuffer.toString();
+					System.out.println("result:"+result);
+				}
+			} catch (IOException e) {
+				System.out.println("发送POST请求出现异常！"+e);
+				e.printStackTrace();
+			}finally{
+				if(reader!=null){
+					reader.close();
+				}
+			}
+
+		}
+		return result;
+
+	}
+
+	public static String UploadFile(String urlString,InputStream inputStream,String fileName) throws Exception{
+		//返回结果
+		String result=null;
+		if(inputStream==null){
+			throw new IOException("文件不存在");
+		}
+		URL url=new URL(urlString);
+		HttpsURLConnection conn=(HttpsURLConnection) url.openConnection();
+		conn.setRequestMethod("POST");//以POST方式提交表单
+		conn.setDoInput(true);
+		conn.setDoOutput(true);
+		conn.setUseCaches(false);//POST方式不能使用缓存
+		//设置请求头信息
+		conn.setRequestProperty("Connection", "Keep-Alive");
+		conn.setRequestProperty("Charset", "UTF-8");
+		//设置边界
+		String BOUNDARY="----------"+System.currentTimeMillis();
+		conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
+		//请求正文信息
+		//第一部分
+		StringBuilder sb=new StringBuilder();
+		sb.append("--");//必须多两条道
+		sb.append(BOUNDARY);
+		sb.append("\r\n");
+		sb.append("Content-Disposition: form-data;name=\"media\"; filename=\"" + fileName+"\"\r\n");
+		sb.append("Content-Type:application/octet-stream\r\n\r\n");
+		System.out.println("sb:"+sb);
+
+		//获得输出流
+		OutputStream out=new DataOutputStream(conn.getOutputStream());
+		//输出表头
+		out.write(sb.toString().getBytes("UTF-8"));
+		//文件正文部分
+		//把文件以流的方式 推送道URL中
+		DataInputStream din=new DataInputStream(inputStream);
+		int bytes=0;
+		byte[] buffer=new byte[1024];
+		while((bytes=din.read(buffer))!=-1){
+			out.write(buffer,0,bytes);
+		}
+		din.close();
+		//结尾部分
+		byte[] foot=("\r\n--" + BOUNDARY + "--\r\n").getBytes("UTF-8");//定义数据最后分割线
+		out.write(foot);
+		out.flush();
+		out.close();
+		if(HttpsURLConnection.HTTP_OK==conn.getResponseCode()){
+
+			StringBuffer strbuffer=null;
+			BufferedReader reader=null;
+			try {
+				strbuffer=new StringBuffer();
+				reader=new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				String lineString=null;
+				while((lineString=reader.readLine())!=null){
+					strbuffer.append(lineString);
+
+				}
+				if(result==null){
+					result=strbuffer.toString();
+					System.out.println("result:"+result);
+				}
+			} catch (IOException e) {
+				System.out.println("发送POST请求出现异常！"+e);
+				e.printStackTrace();
+			}finally{
+				if(reader!=null){
+					reader.close();
+				}
+			}
+
+		}
+		return result;
+
+	}
+
+	/**
+	 * 获取网络图片流
+	 *
+	 * @param url
+	 * @return
+	 */
+	public static InputStream getImageStream(String url) throws IOException {
+
+			HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+			connection.setReadTimeout(5000);
+			connection.setConnectTimeout(5000);
+			connection.setRequestMethod("GET");
+			if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+				InputStream inputStream = connection.getInputStream();
+				return inputStream;
+			}
+
+		return null;
 	}
 }  

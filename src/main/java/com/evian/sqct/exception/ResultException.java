@@ -8,7 +8,7 @@ package com.evian.sqct.exception;
  * @Date:2019/11/25 18:14
  * @Author:XHX
  */
-public class ResultException extends Exception {
+public class ResultException extends RuntimeException {
 
     public ResultException(String message) {
         super(message);

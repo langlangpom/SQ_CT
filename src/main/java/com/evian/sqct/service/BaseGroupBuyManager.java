@@ -1,6 +1,7 @@
 package com.evian.sqct.service;
 
 import com.alibaba.fastjson.JSONObject;
+import com.evian.sqct.bean.groupBuy.input.FindGroupBuyProductReqDTO;
 import com.evian.sqct.bean.sys.EEnterpriseWechatliteapp;
 import com.evian.sqct.bean.vendor.PayParam;
 import com.evian.sqct.bean.vendor.UrlManage;
@@ -9,7 +10,6 @@ import com.evian.sqct.dao.IOrderDao;
 import com.evian.sqct.util.*;
 import com.evian.sqct.wxHB.RequestHandler;
 import com.evian.sqct.wxPay.APPWxPayBean;
-import com.evian.sqct.wxPay.APPWxPayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
@@ -43,26 +43,33 @@ public class BaseGroupBuyManager extends BaseManager{
 	@Autowired
 	@Qualifier("orderDao")
 	private IOrderDao orderDao;
+
+	@Autowired
+	private WxPayService wxPayService;
 	
-	public Map<String, Object> selectGroupBuyOrder(String beginTime,String endTime,Integer eid,String orderNo,String nickName,Boolean isCommander,Boolean isRefund,String account,Integer groupBuyState,String paymentNo,String orderGroup,String eName,String pname,String pcode,String sdkType,Integer shopId,Boolean isFilterEndOrder, Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		logger.info("[project:{}] [step:enter] [beginTime:{}] [endTime:{}] [eid:{}] [orderNo:{}] [nickName:{}] [isCommander:{}] [isRefund:{}] [account:{}] [groupBuyState:{}] [paymentNo:{}] [orderGroup:{}] [eName:{}] [pname:{}] [pcode:{}] [sdkType:{}] [shopId:{}] [isFilterEndOrder:{}] [PageIndex:{}] [PageSize:{}] [IsSelectAll:{}]",
-				new Object[] { WebConfig.projectName,beginTime,endTime,eid,orderNo,nickName,isCommander,isRefund,account,groupBuyState,paymentNo,orderGroup,eName,pname,pcode,sdkType,shopId,isFilterEndOrder,PageIndex,PageSize,IsSelectAll});
-		Map<String, Object> stringObjectMap = groupBuyDao.Proc_Backstage_groupbuy_order_select(beginTime, endTime, eid, orderNo, nickName, isCommander, isRefund, account, groupBuyState, paymentNo, orderGroup, eName, pname, pcode, sdkType, shopId, isFilterEndOrder, PageIndex, PageSize, IsSelectAll);
+	public Map<String, Object> selectGroupBuyOrder(String beginTime,String endTime,Integer eid,String orderNo,String nickName,Boolean isCommander,Boolean isRefund,String account,Integer groupBuyState,String paymentNo,String orderGroup,String eName,String pname,String pcode,String sdkType,Integer shopId,Boolean isFilterEndOrder, Integer sucMode,Integer minGroupBuyNum,Integer maxGroupBuyNum,Integer sortType,Integer clientId,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
+		Map<String, Object> stringObjectMap = groupBuyDao.Proc_Backstage_groupbuy_order_select(beginTime, endTime, eid, orderNo, nickName, isCommander, isRefund, account, groupBuyState, paymentNo, orderGroup, eName, pname, pcode, sdkType, shopId, isFilterEndOrder,sucMode, minGroupBuyNum, maxGroupBuyNum, sortType, PageIndex, PageSize, IsSelectAll);
+		List<Map<String,Object>> groupBuyOrder = (List<Map<String, Object>>) stringObjectMap.get("groupBuyOrder");
+		if(isCommander!=null&&isCommander&&(IsSelectAll==null||!IsSelectAll)&&clientId!=null){
+			filterIfJoin(clientId, groupBuyOrder, true);
+		}else{
+			filterIfJoin(0, groupBuyOrder, false);
+		}
+
+
 		return stringObjectMap;
 	}
 	
-	public Map<String,Object> selectGroupBuyProducts(String beginTime,String endTime,Integer eid,Integer cityId,Integer groupBuyType,Boolean isEnabled,String eName,String shopName,Integer shopId,String pname,String pcode,Integer cid,String groupName,Integer PageIndex,Integer PageSize,Boolean IsSelectAll){
-		logger.info("[project:{}] [step:enter] [beginTime:{}] [endTime:{}] [eid:{}] [cityId:{}] [groupBuyType:{}] [isEnabled:{}] [eName:{}] [shopName:{}] [shopId:{}] [pname:{}] [pcode:{}] [cid:{}] [groupName:{}] [PageIndex:{}] [PageSize:{}] [IsSelectAll:{}]",
-				new Object[] { WebConfig.projectName,beginTime,endTime,eid,cityId,groupBuyType,isEnabled,eName,shopName,shopId,pname,pcode,cid,groupName,PageIndex,PageSize,IsSelectAll});
-		Map<String, Object> proc_Backstage_groupbuy_product_select = groupBuyDao.Proc_Backstage_groupbuy_product_select(beginTime, endTime, eid, cityId, groupBuyType, isEnabled, eName, shopName, shopId, pname, pcode, cid,groupName, PageIndex, PageSize, IsSelectAll);
+	public Map<String,Object> selectGroupBuyProducts(FindGroupBuyProductReqDTO dto){
+		Map<String, Object> proc_Backstage_groupbuy_product_select = groupBuyDao.Proc_Backstage_groupbuy_product_select(dto);
 		Object groupBuyProducts = proc_Backstage_groupbuy_product_select.get("groupBuyProducts");
 		if(groupBuyProducts!=null) {
 			List<Map<String,Object>> groupBuyProductsList = (List<Map<String,Object>>)groupBuyProducts;
 			for (Map<String, Object> map : groupBuyProductsList) {
 				Object xa = map.get("xaId");
 				if(xa!=null) {
-					Integer xaId = (Integer) xa;
-					List<Map<String, Object>> priceScheme = groupBuyDao.e_groupbuy_price_schemeByXaId(xaId);
+					Integer xaIdTemp = (Integer) xa;
+					List<Map<String, Object>> priceScheme = groupBuyDao.e_groupbuy_price_schemeByXaId(xaIdTemp);
 					map.put("priceScheme", priceScheme);
 				}
 			}
@@ -87,6 +94,7 @@ public class BaseGroupBuyManager extends BaseManager{
 
 	/** 243.保存拼团单据  Json */ 
 	public String saveGroupBuyOrder(String clientId,String openid,String orderJson,String appId,String ip,String body) throws Exception {
+
 		List<BasicNameValuePair> params=new ArrayList<BasicNameValuePair>();
 		params.add(new BasicNameValuePair("clientId", clientId));
 		params.add(new BasicNameValuePair("openid", openid));
@@ -94,6 +102,12 @@ public class BaseGroupBuyManager extends BaseManager{
 		params.add(new BasicNameValuePair("authorizer_appid", appId));
 		String webContent = HttpClientUtilOkHttp.postEvianApi(UrlManage.getShuiqooApiUrl()+ "/groupbuy/saveGroupBuyOrder.action", params);
 		webContent = stringCodeExchangeIntCode(webContent);
+		JSONObject jsonObject = JSONObject.parseObject(orderJson);
+		Object sucMode = jsonObject.get("sucMode");
+		// 凑团直接返回
+		if(sucMode!=null&&((Integer) sucMode)==2){
+			return webContent;
+		}
 		return savePayParam(webContent,appId,ip,body);
 	}
 
@@ -108,7 +122,6 @@ public class BaseGroupBuyManager extends BaseManager{
 		webContent = stringCodeExchangeIntCode(webContent);
 		if(operateId==1){
 			return savePayParam(webContent,appId,ip,body);
-
 		}else{
 			return webContent;
 		}
@@ -136,8 +149,8 @@ public class BaseGroupBuyManager extends BaseManager{
 			BigDecimal big100 = new BigDecimal("100");
 			int total_fee = big100.multiply(bigDecimal).intValue();
 
-			String nonce_str = APPWxPayUtils.create_nonce_str();
-			String timestamp = APPWxPayUtils.create_timestamp();
+			String nonce_str = wxPayService.create_nonce_str();
+			String timestamp = wxPayService.create_timestamp();
 
 			APPWxPayBean wx = new APPWxPayBean();
 			wx.setNonce_str(nonce_str);
@@ -162,7 +175,7 @@ public class BaseGroupBuyManager extends BaseManager{
 			wx.setNotify_url(shuiqooMchantUrl+"/evian/sqct/pay/notifyUrl");
 			wx.setTrade_type("APP");
 			wx.setAppKey(DES3_CBCUtil.des3DecodeCBC(PayParam.getWeChatAppPayKey()));
-			String pay = APPWxPayUtils.pay(wx);
+			String pay = wxPayService.pay(wx);
 
 			SortedMap<String,String> packageParams = new TreeMap<>();
 			JSONObject payReq = new JSONObject();
@@ -293,8 +306,38 @@ public class BaseGroupBuyManager extends BaseManager{
 	 * @return
 	 */
 	public List<Map<String,Object>> selectClientNotPayGroupBuyOrder(String identityCode, Integer eid, Integer xaId, Integer pid){
-		logger.info("[project:{}] [step:enter] [identityCode:{}] [eid:{}] [xaId:{}] [pid:{}]",
-				new Object[] { WebConfig.projectName,identityCode,eid,xaId,pid});
 		return groupBuyDao.selectClientNotPayGroupBuyOrder(identityCode, eid, xaId, pid);
+	}
+
+	/**
+	 * 根据gboId 查询 参团人的clientId
+	 * @param gboId
+	 * @return
+	 */
+	public List<Map<String,Object>> selectClientId_e_groupbuy_orderByGboId(Integer gboId){
+		return groupBuyDao.selectClientId_e_groupbuy_orderByGboId(gboId);
+	}
+
+	private void filterIfJoin(int clientId,List<Map<String,Object>> groupBuyOrder,boolean ifFilter){
+		for (Map<String,Object> order:groupBuyOrder){
+			Object gboId = order.get("gboId");
+			order.put("ifJoin",false);
+			order.put("joinManCount",0);
+			if(ifFilter&&gboId!=null){
+				List<Map<String, Object>> orderInfors = this.selectClientId_e_groupbuy_orderByGboId((Integer) gboId);
+				int joinManCount = 0;
+				for(Map<String,Object> oi:orderInfors){
+					Integer client = (Integer) oi.get("clientId");
+					Integer groupBuyState = (Integer) oi.get("groupBuyState");
+					if(client!=null&&clientId==client){
+						order.put("ifJoin",true);
+					}
+					if(groupBuyState!=null&&(groupBuyState==2||groupBuyState==3)){
+						joinManCount++;
+					}
+				}
+				order.put("joinManCount",joinManCount);
+			}
+		}
 	}
 }

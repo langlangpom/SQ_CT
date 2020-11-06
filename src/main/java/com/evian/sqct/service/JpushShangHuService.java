@@ -1,8 +1,5 @@
 package com.evian.sqct.service;
 
-import cn.jiguang.common.ClientConfig;
-import cn.jpush.api.JPushClient;
-import cn.jpush.api.push.PushResult;
 import cn.jpush.api.push.model.Message;
 import cn.jpush.api.push.model.Options;
 import cn.jpush.api.push.model.Platform;
@@ -12,24 +9,25 @@ import cn.jpush.api.push.model.audience.Audience;
 import cn.jpush.api.push.model.notification.AndroidNotification;
 import cn.jpush.api.push.model.notification.IosNotification;
 import cn.jpush.api.push.model.notification.Notification;
+import com.alibaba.fastjson.JSONObject;
 import com.evian.sqct.bean.util.JPushConfig;
 import com.evian.sqct.bean.util.JPushShangHuModel;
 import com.evian.sqct.bean.vendor.UrlManage;
+import com.evian.sqct.util.HttpClientUtilOkHttp;
+import com.evian.sqct.util.JacksonUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 水趣商户极光推送
  */
 @Service
-public class JpushShangHuService {
+public class JpushShangHuService extends BaseManager{
     private static final Logger logger = LoggerFactory
             .getLogger(JpushShangHuService.class);
 
@@ -63,7 +61,7 @@ public class JpushShangHuService {
             }
         }
 
-        try {
+        /*try {
             ClientConfig clientConfig = ClientConfig.getInstance();
             JPushClient jpushClient = new JPushClient(masterSecret, appKey,
                     null, clientConfig);
@@ -80,6 +78,15 @@ public class JpushShangHuService {
             }
         } catch (Exception ex) {
             logger.error("[exception]", ex);
+        }*/
+
+        // 2020-08-13 切换至统一发送兼容多方平台推送接口
+        String pushJson =JacksonUtils.obj2json(model);
+        String result = pushMsg(pushJson);
+        JSONObject jsonObject = JSONObject.parseObject(result);
+        String code = jsonObject.getString("code");
+        if("E00000".equals(code)){
+            resultMap.put("tag", "成功");
         }
         return resultMap;
     }
@@ -152,4 +159,15 @@ public class JpushShangHuService {
                                     .build()).build();
         }
     }
+
+
+    /** 水趣推送消息给水趣商户APP  Json */
+    private static String pushMsg(String pushJson) {
+        List<BasicNameValuePair> params=new ArrayList<BasicNameValuePair>();
+        params.add(new BasicNameValuePair("pushJson", pushJson));
+        String webContent = HttpClientUtilOkHttp.postEvianApi("http://10.16.101.7:18085/Push_Web/evian/push/pushMsg.action", params);
+//        webContent = stringCodeExchangeIntCode(webContent);
+        return webContent;
+    }
+
 }

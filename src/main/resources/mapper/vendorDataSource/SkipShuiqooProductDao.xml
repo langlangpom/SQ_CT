@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.evian.sqct.dao.mybatis.vendorDataSource.dao.ISkipShuiqooProductDao">
+
+    <resultMap id="BaseResultMap" type="com.evian.sqct.bean.vendor.SkipShuiqooProduct">
+        <result column="id" jdbcType="INTEGER" property="id" />
+        <result column="pid" jdbcType="INTEGER" property="pid" />
+        <result column="sort" jdbcType="INTEGER" property="sort" />
+        <result column="createTime" jdbcType="VARCHAR" property="createTime" />
+        <result column="creater" jdbcType="VARCHAR" property="creater" />
+    </resultMap>
+
+    <select id="select" resultType="com.evian.sqct.bean.vendor.SkipShuiqooProduct">
+        select id, pid, creater,eid from skip_shuiqoo_product where id = #{id}
+    </select>
+
+    <select id="selectSkipShuiqooProductByEid" parameterType="int" resultType="com.evian.sqct.bean.vendor.SkipShuiqooProduct">
+        select id, pid, creater,eid from skip_shuiqoo_product where eid = #{eid}
+    </select>
+
+    <insert id="insertSkipShuiqooProduct" parameterType="com.evian.sqct.bean.vendor.SkipShuiqooProduct" useGeneratedKeys="true">
+        insert into skip_shuiqoo_product(pid,sort,creater,eid) values(#{pid},#{sort},#{creater},#{eid})
+    </insert>
+
+    <delete id="deleteSkipShuiqooProduct">
+        delete from skip_shuiqoo_product where id=#{id} and eid=#{eid}
+    </delete>
+
+    <select id="selectSkipShuiqooProductRepByEid" resultType="com.evian.sqct.bean.vendor.write.SkipShuiqooProductRepDTO">
+        select a.id, a.pid, a.eid, a.sort, b.pname, b.unit, b.price, b.vipPrice, b.pictureUrl, b.describe, b.salesNum, b.ifTicket, b.ifCombo from skip_shuiqoo_product a inner join EVIAN_CDSP.dbo.e_product b on a.pid=b.pid  where a.eid = #{eid} order by a.sort
+    </select>
+
+</mapper>

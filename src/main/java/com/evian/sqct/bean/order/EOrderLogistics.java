@@ -11,14 +11,8 @@ import java.util.Date;
 public class EOrderLogistics implements Serializable{
 
 	private static final long serialVersionUID = 4258180674429445732L;
-	
-	@Override
-	public String toString() {
-		return "EOrderLogistics [logisticsId=" + logisticsId + ", logisticsType=" + logisticsType
-				+ ", logisticsDescribe=" + logisticsDescribe + ", contactsId=" + contactsId + ", contacts=" + contacts
-				+ ", phone=" + phone + ", photo=" + photo + ", dateCreated=" + dateCreated + ", dataReson=" + dataReson
-				+ ", WEBID=" + WEBID + "]";
-	}
+
+	private Integer orderId;			// 订单id
 	private Integer logisticsId;		// 物流ID
 	private Integer logisticsType;		// 物流信息类别(1:订货单据;  2:售后服务;  3:投诉单据)
 	private String logisticsDescribe;	// 物流描述
@@ -29,6 +23,17 @@ public class EOrderLogistics implements Serializable{
 	private Date dateCreated;			// 录入日期
 	private Integer dataReson;			// 数据来源 0:业务系统  1:水叮咚
 	private Integer WEBID;				// ERP端用户ID
+
+	public EOrderLogistics(Integer orderId, Integer logisticsType, String logisticsDescribe) {
+		this.orderId = orderId;
+		this.logisticsType = logisticsType;
+		this.logisticsDescribe = logisticsDescribe;
+	}
+
+	public EOrderLogistics(){
+
+	}
+
 	public Integer getLogisticsId() {
 		return logisticsId;
 	}
@@ -89,6 +94,29 @@ public class EOrderLogistics implements Serializable{
 	public void setWEBID(Integer wEBID) {
 		WEBID = wEBID;
 	}
-	
-	
+
+	public Integer getOrderId() {
+		return orderId;
+	}
+
+	public void setOrderId(Integer orderId) {
+		this.orderId = orderId;
+	}
+
+	@Override
+	public String toString() {
+		return "EOrderLogistics [" +
+				"orderId=" + orderId +
+				", logisticsId=" + logisticsId +
+				", logisticsType=" + logisticsType +
+				", logisticsDescribe=" + logisticsDescribe +
+				", contactsId=" + contactsId +
+				", contacts=" + contacts +
+				", phone=" + phone +
+				", photo=" + photo +
+				", dateCreated=" + dateCreated +
+				", dataReson=" + dataReson +
+				", WEBID=" + WEBID +
+				']';
+	}
 }

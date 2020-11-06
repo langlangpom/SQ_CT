@@ -1,5 +1,7 @@
 package com.evian.sqct.util;
 
+import org.springframework.util.Assert;
+
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -7,6 +9,10 @@ import java.net.URLConnection;
 import java.text.DateFormat;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -503,5 +509,27 @@ public class DateUtil {
 			exception.printStackTrace();
 		}
 		return 0;
+	}
+
+	/**
+	 * 将时间字符串根据时间格式转为时间戳
+	 * @param time
+	 * @param pattern
+	 * @return
+	 */
+	public static Long convertTimeToLong(String time,String pattern){
+		Assert.notNull(time, "time is null");
+		DateTimeFormatter ftf = DateTimeFormatter.ofPattern(pattern);
+		LocalDateTime parse = LocalDateTime.parse(time, ftf);
+		return LocalDateTime.from(parse).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+	}
+
+	/**
+	 * 将Long类型的时间戳转换成String 类型的时间格式，时间格式为：yyyy-MM-dd HH:mm:ss
+	 */
+	public static String convertTimeToString(Long time,String pattern){
+		Assert.notNull(time, "time is null");
+		DateTimeFormatter ftf = DateTimeFormatter.ofPattern(pattern);
+		return ftf.format(LocalDateTime.ofInstant(Instant.ofEpochMilli(time),ZoneId.systemDefault()));
 	}
 }

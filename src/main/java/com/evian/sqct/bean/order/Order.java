@@ -24,6 +24,13 @@ public class Order implements Serializable{
 	private Integer PageSize;
 	private Boolean IsSelectAll;
 	private Integer payMode;		// 支付方式  1:货到付款 2:在线支付 3:电子水票
+	private Boolean linePaySuceed;	// 是否支付
+	private Integer has_return;
+	private String sourceGroup;
+	private String sendAddress;
+	private String deliverMan;
+	private Boolean isFreight;
+	private String phone;
 	public Integer getPayMode() {
 		return payMode;
 	}
@@ -138,12 +145,92 @@ public class Order implements Serializable{
 	public void setIsSelectAll(Boolean isSelectAll) {
 		IsSelectAll = isSelectAll;
 	}
+
+	public Boolean getLinePaySuceed() {
+		return linePaySuceed;
+	}
+
+	public void setLinePaySuceed(Boolean linePaySuceed) {
+		this.linePaySuceed = linePaySuceed;
+	}
+
+	public Integer getHas_return() {
+		return has_return;
+	}
+
+	public void setHas_return(Integer has_return) {
+		this.has_return = has_return;
+	}
+
+	public String getSourceGroup() {
+		return sourceGroup;
+	}
+
+	public void setSourceGroup(String sourceGroup) {
+		this.sourceGroup = sourceGroup;
+	}
+
+	public String getSendAddress() {
+		return sendAddress;
+	}
+
+	public void setSendAddress(String sendAddress) {
+		this.sendAddress = sendAddress;
+	}
+
+	public String getDeliverMan() {
+		return deliverMan;
+	}
+
+	public void setDeliverMan(String deliverMan) {
+		this.deliverMan = deliverMan;
+	}
+
+	public Boolean getIsFreight() {
+		return isFreight;
+	}
+
+	public void setIsFreight(Boolean isFreight) {
+		this.isFreight = isFreight;
+	}
+
+	public String getPhone() {
+		return phone;
+	}
+
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+
 	@Override
 	public String toString() {
-		return "Order [orderId=" + orderId + ", shopId=" + shopId + ", beginTime=" + beginTime + ", endTime=" + endTime
-				+ ", eid=" + eid + ", orderNo=" + orderNo + ", status=" + status + ", sdkType=" + sdkType
-				+ ", ifMutual=" + ifMutual + ", ifreply=" + ifreply + ", in_come=" + in_come + ", account=" + account
-				+ ", shopName=" + shopName + ", confirm_take=" + confirm_take + ", eName=" + eName + ", PageIndex="
-				+ PageIndex + ", PageSize=" + PageSize + ", IsSelectAll=" + IsSelectAll + ", payMode=" + payMode + "]";
+		return "Order [" +
+				"orderId=" + orderId +
+				", shopId=" + shopId +
+				", beginTime=" + beginTime +
+				", endTime=" + endTime +
+				", eid=" + eid +
+				", orderNo=" + orderNo +
+				", status=" + status +
+				", sdkType=" + sdkType +
+				", ifMutual=" + ifMutual +
+				", ifreply=" + ifreply +
+				", in_come=" + in_come +
+				", account=" + account +
+				", shopName=" + shopName +
+				", confirm_take=" + confirm_take +
+				", eName=" + eName +
+				", PageIndex=" + PageIndex +
+				", PageSize=" + PageSize +
+				", IsSelectAll=" + IsSelectAll +
+				", payMode=" + payMode +
+				", linePaySuceed=" + linePaySuceed +
+				", has_return=" + has_return +
+				", sourceGroup=" + sourceGroup +
+				", sendAddress=" + sendAddress +
+				", deliverMan=" + deliverMan +
+				", isFreight=" + isFreight +
+				", phone=" + phone +
+				']';
 	}
 }
