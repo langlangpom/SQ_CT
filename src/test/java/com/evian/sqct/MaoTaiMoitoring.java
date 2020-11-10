@@ -18,10 +18,11 @@ import java.util.List;
  */
 public class MaoTaiMoitoring {
     public static String lamboKey = "053F1h0w3JNHfV2A3C2w3lYqdu4F1h0C#mQMtJNLoZfN7fZHbqLTIfs2bWuloHOjQOTQoXMsYoFk=";
-    public static String token = "09377JGa1yaiUz0SKMHa12djNt377JGH";
+    public static String token = "0630QWkl2jBBW54oShol2eh2cd40QWke";
     public static String openid = "mQMtJNLoZfN7fZHbqLTIfs2bWuloHOjQOTQoXMsYoFk=";
 
     private static Logger logger = LoggerFactory.getLogger(MaoTaiMoitoring.class);
+
     public static void main(String[] args) throws InterruptedException, AWTException {
         List<MaoTaiShop> tempShops = new ArrayList<>();
         init();

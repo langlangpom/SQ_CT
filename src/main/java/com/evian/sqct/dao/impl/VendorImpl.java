@@ -141,7 +141,6 @@ public class VendorImpl implements IVendorDao {
 		}else {
 			result.put("prizes", Arrays.asList());
 		}
-		
 		return result;
 	}
 

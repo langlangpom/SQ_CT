@@ -13,17 +13,17 @@ import javax.validation.constraints.NotNull;
  */
 public class VendorAppMerchantAccountProduct {
     @NotNull
-    private Integer account;
+    private Integer accountId;
     @NotNull
     private Integer pid;
     private Integer sortId;
 
-    public Integer getAccount() {
-        return account;
+    public Integer getAccountId() {
+        return accountId;
     }
 
-    public void setAccount(Integer account) {
-        this.account = account;
+    public void setAccountId(Integer accountId) {
+        this.accountId = accountId;
     }
 
     public Integer getPid() {
@@ -45,7 +45,7 @@ public class VendorAppMerchantAccountProduct {
     @Override
     public String toString() {
         return "VendorAppMerchantAccountProduct [" +
-                "account=" + account +
+                "accountId=" + accountId +
                 ", pid=" + pid +
                 ", sortId=" + sortId +
                 ']';

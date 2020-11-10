@@ -22,6 +22,7 @@ public class ProcBackstageVendorProductSelectReqDTO extends PagingPojo {
     private Integer replenishmentClassId;
     /** 常用补货员id */
     private Integer frequentlyUseAccountId;
+    private Integer hasUseAccountId;
     private Integer mainboardId;
 
     public Integer getId() {
@@ -96,6 +97,14 @@ public class ProcBackstageVendorProductSelectReqDTO extends PagingPojo {
         this.mainboardId = mainboardId;
     }
 
+    public Integer getHasUseAccountId() {
+        return hasUseAccountId;
+    }
+
+    public void setHasUseAccountId(Integer hasUseAccountId) {
+        this.hasUseAccountId = hasUseAccountId;
+    }
+
     @Override
     public String toString() {
         return "ProcBackstageVendorProductSelectReqDTO [" +
@@ -108,6 +117,7 @@ public class ProcBackstageVendorProductSelectReqDTO extends PagingPojo {
                 ", classId=" + classId +
                 ", replenishmentClassId=" + replenishmentClassId +
                 ", frequentlyUseAccountId=" + frequentlyUseAccountId +
+                ", hasUseAccountId=" + hasUseAccountId +
                 ", PageIndex=" + PageIndex +
                 ", PageSize=" + PageSize +
                 ", IsSelectAll=" + IsSelectAll +

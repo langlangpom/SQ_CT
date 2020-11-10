@@ -23,7 +23,7 @@ public class Test25 {
     public static void main(String[] args) {
         Map<String, String> param = new HashMap<>();
 //        param.put("shopId","MAOTAI1001");
-        String url = "https://reserve.moutai.com.cn/api/rsv-server/anon/manage/rimItem/helpBox?shopId=MAOTAI1001";
+        String url = "https://open.weixin.qq.com/connect/oauth2/authorize?appid=wxca6a32cf7a967782&redirect_uri=https%3A%2F%2Freserve.moutai.com.cn%2Fapi%2Frsv-server%2Fanon%2Fwechat%2Fauth2%2Fwxca6a32cf7a967782%3Frdurl%3Dhttps%3A%2F%2Freserve.moutai.com.cn%2Fmconsumer%2F%3Fa%3D1%23%2Ftabs%2Fapply&response_type=code&scope=snsapi_base&state=STATE#wechat_redirect";
         // 创建Httpclient对象
         CloseableHttpClient httpClient = HttpClients.createDefault();
         CloseableHttpResponse response = null;
@@ -33,7 +33,7 @@ public class Test25 {
             HttpGet httpPost = new HttpGet(url);
 
             httpPost.setHeader("Cookie","lambo-sso-key_0_=083TzBll2SLFU542wanl2bYcJw2TzBlh#mQMtJNLoZfN7fZHbqLTIfs2bWuloHOjQOTQoXMsYoFk=");
-            httpPost.setHeader("User-Agent","Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36 QBCore/4.0.1301.400 QQBrowser/9.0.2524.400 Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2875.116 Safari/537.36 NetType/WIFI MicroMessenger/7.0.5 WindowsWechat");
+            httpPost.setHeader("User-Agent","Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36 QBCore/4.0.1301.400 QQBrowser/9.0.2524.400 Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2875.116 Safari/537.36 NetType/WIFI micromessenger/7.0.5 WindowsWechat");
             httpPost.setHeader("token","");
             httpPost.setHeader("Content-Type","application/x-www-form-urlencoded;charset=UTF-8");
             httpPost.setHeader("Referer","https://reserve.moutai.com.cn/mconsumer/?a=1&token=083TzBll2SLFU542wanl2bYcJw2TzBlh\n");
